@@ -4,7 +4,9 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-bevy = "0.20.0"
+bevy = { version = "0.20.0", features = ["sysinfo_plugin"] }
+bevy_egui = "0.43"
+rand = "0.10"
 
 [features]
 default = ["dev"]
