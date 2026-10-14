@@ -14,12 +14,17 @@ pub struct Market {
 pub struct Stock {
     pub symbol: String,
     pub volatility: f32,
+    pub dividend_yield: f32,
     pub history: VecDeque<f32>,
 }
 
 impl Stock {
     pub fn price(&self) -> f32 {
         self.history.back().copied().unwrap_or(STOCK_MIN_PRICE)
+    }
+
+    pub fn dividend_per_share(&self) -> f32 {
+        self.price() * self.dividend_yield
     }
 
     pub fn weekly_change_pct(&self) -> f32 {
@@ -38,27 +43,26 @@ impl Stock {
     }
 }
 
-/// (symbol, starting price, volatility)
-const STOCKS: [(&str, f32, f32); 12] = [
-    ("ACME", 100.0, 0.03),
-    ("BLNK", 12.0, 0.08),
-    ("CRPT", 250.0, 0.10),
-    ("DYNO", 45.0, 0.04),
-    ("ECHO", 80.0, 0.02),
-    ("FLUX", 30.0, 0.06),
-    ("GRID", 150.0, 0.03),
-    ("HELX", 60.0, 0.05),
-    ("IONX", 20.0, 0.09),
-    ("JOLT", 95.0, 0.04),
-    ("KRNL", 180.0, 0.02),
-    ("LUMA", 8.0, 0.12),
+const STOCKS: [(&str, f32, f32, f32); 12] = [
+    ("ACME", 100.0, 0.03, 0.004),
+    ("BLNK", 12.0, 0.08, 0.0),
+    ("CRPT", 250.0, 0.10, 0.0),
+    ("DYNO", 45.0, 0.04, 0.002),
+    ("ECHO", 80.0, 0.02, 0.006),
+    ("FLUX", 30.0, 0.06, 0.0),
+    ("GRID", 150.0, 0.03, 0.005),
+    ("HELX", 60.0, 0.05, 0.002),
+    ("IONX", 20.0, 0.09, 0.0),
+    ("JOLT", 95.0, 0.04, 0.003),
+    ("KRNL", 180.0, 0.02, 0.007),
+    ("LUMA", 8.0, 0.12, 0.0),
 ];
 
 impl Market {
     pub fn new(rng: &mut GlobalRng) -> Self {
         let stocks = STOCKS
             .iter()
-            .map(|&(symbol, price, volatility)| {
+            .map(|&(symbol, price, volatility, dividend_yield)| {
                 let mut history = VecDeque::with_capacity(MARKET_HISTORY_WEEKS);
                 history.push_front(price);
                 for _ in 1..MARKET_HISTORY_WEEKS {
@@ -68,6 +72,7 @@ impl Market {
                 Stock {
                     symbol: symbol.to_string(),
                     volatility,
+                    dividend_yield,
                     history,
                 }
             })

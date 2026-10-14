@@ -32,6 +32,7 @@ pub fn game_ui(
         format!("Week: {}/{}", state.date.week + 1, Date::WEEKS_PER_MONTH),
         format!("Month: {}", state.date.month_name()),
         format!("Year: {}", state.date.year + 1),
+        format!("Interest: {:.0}%", state.interest * 100.0),
     ];
     let mut y = PANEL_GAP;
     for line in stats {

@@ -7,6 +7,7 @@ edition = "2024"
 bevy = { version = "0.20.0", features = ["sysinfo_plugin"] }
 bevy_egui = "0.43"
 rand = "0.10"
+strum = { version = "0.27", features = ["derive"] }
 
 [features]
 default = ["dev"]

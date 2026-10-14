@@ -4,8 +4,8 @@ use bevy_egui::{EguiContexts, egui};
 use super::style::{backdrop, button, c32, centered_lines, lines_height, place, rect_at};
 use crate::consts::{
     JOKER_PANEL_WIDTH_PCT, OFFER_SIZE, PANEL_COLOR, PANEL_GAP, SCORE_PANEL_WIDTH_PCT,
-    STOCK_DOWN_COLOR, STOCK_UP_COLOR, TICKER_CARD_WIDTH_PCT, TICKER_FONT_SIZE, TICKER_HEIGHT_PCT,
-    TICKER_TOP_PCT,
+    STOCK_DOWN_COLOR, STOCK_FONT_SIZE, STOCK_UP_COLOR, TICKER_CARD_WIDTH_PCT, TICKER_FONT_SIZE,
+    TICKER_HEIGHT_PCT, TICKER_TOP_PCT,
 };
 use crate::general::Portfolio;
 use crate::stocks::{Market, WeeklyOffer};
@@ -60,6 +60,14 @@ pub fn ticker_ui(
             &lines,
             TICKER_FONT_SIZE,
             color,
+        );
+
+        bg.text(
+            egui::pos2(card.right() - PANEL_GAP, card.top() + PANEL_GAP),
+            egui::Align2::RIGHT_TOP,
+            format!("Div {:.1}%", stock.dividend_yield * 100.0),
+            egui::FontId::proportional(STOCK_FONT_SIZE),
+            egui::Color32::WHITE,
         );
 
         let button_rect = egui::Rect::from_min_size(

@@ -1,5 +1,7 @@
+mod flash;
 mod game;
 mod game_over;
+mod joker_shop;
 mod jokers;
 mod portfolio;
 mod style;
@@ -14,17 +16,20 @@ pub struct ScreensPlugin;
 
 impl Plugin for ScreensPlugin {
     fn build(&self, app: &mut App) {
-        // Egui is immediate mode: the whole UI is redrawn every frame.
-        app.add_systems(
-            EguiPrimaryContextPass,
-            (
-                game::game_ui,
-                jokers::jokers_ui,
-                ticker::ticker_ui,
-                portfolio::portfolio_ui,
-                game_over::game_over_ui.run_if(in_state(AppState::GameOver)),
-            )
-                .chain(),
-        );
+        app.init_resource::<flash::Flashes>()
+            .add_systems(Update, flash::update_flashes)
+            // Egui is immediate mode: the whole UI is redrawn every frame.
+            .add_systems(
+                EguiPrimaryContextPass,
+                (
+                    game::game_ui,
+                    jokers::jokers_ui,
+                    ticker::ticker_ui,
+                    portfolio::portfolio_ui,
+                    joker_shop::joker_shop_ui.run_if(in_state(AppState::JokerShop)),
+                    game_over::game_over_ui.run_if(in_state(AppState::GameOver)),
+                )
+                    .chain(),
+            );
     }
 }

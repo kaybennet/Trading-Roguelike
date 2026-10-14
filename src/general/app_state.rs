@@ -12,5 +12,7 @@ impl Plugin for AppStatePlugin {
 pub enum AppState {
     #[default]
     Playing,
+    /// Between months: the player may buy jokers.
+    JokerShop,
     GameOver,
 }

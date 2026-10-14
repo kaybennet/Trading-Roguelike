@@ -28,9 +28,10 @@ pub const START_GAME_STATE: GameState = GameState {
         year: 0,
     },
     interest: 0.02,
+    modifiers: Vec::new(),
 };
 /// Cash at the start of a run.
-pub const START_CASH: f64 = 100.;
+pub const START_CASH: f64 = 1000000.;
 /// How many different stocks can be held at the start of a run.
 pub const START_PORTFOLIO_SIZE: usize = 2;
 pub const CIRCLE_SIZE: f32 = 120.0;
@@ -68,3 +69,13 @@ pub const JOKER_PANEL_WIDTH_PCT: f32 = 20.0;
 /// Height of one joker slot as a percent of the screen height.
 pub const JOKER_HEIGHT_PCT: f32 = 8.0;
 pub const JOKER_FONT_SIZE: f32 = 20.0;
+/// Pause between one end-of-turn trigger (dividend or joker) and the next.
+pub const TRIGGER_SECS: f32 = 0.25;
+/// How long a trigger's flash takes to fade out.
+pub const TRIGGER_FLASH_SECS: f32 = 0.2;
+pub const TRIGGER_FLASH_COLOR: Color = Color::srgb(0.6, 0.62, 0.66);
+/// How many cards the shop offers after each paid debt.
+pub const SHOP_OFFER_SIZE: usize = 4;
+
+// Modifiers
+pub const MODIFIER_COLOR: Color = Color::srgb(0.4, 0.28, 0.5);

@@ -2,6 +2,7 @@ use bevy::prelude::*;
 
 use super::{AppState, GameState};
 use crate::consts::{MIN_SHARES, START_CASH, START_PORTFOLIO_SIZE};
+use crate::jokers::JokerId;
 use crate::stocks::{Market, Stock};
 
 pub struct PortfolioPlugin;
@@ -24,6 +25,8 @@ pub struct Holding {
 #[derive(Resource)]
 pub struct Portfolio {
     pub cash: f64,
+    /// Owned jokers, applied in order at the end of every turn.
+    pub jokers: Vec<JokerId>,
     pub max_size: usize,
     pub slots: Vec<Option<Holding>>,
 }
@@ -32,6 +35,7 @@ impl Default for Portfolio {
     fn default() -> Self {
         Self {
             cash: START_CASH,
+            jokers: Vec::new(),
             max_size: START_PORTFOLIO_SIZE,
             slots: vec![None; START_PORTFOLIO_SIZE],
         }

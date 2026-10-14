@@ -1,10 +1,12 @@
+use bevy::color::Mix;
 use bevy::prelude::*;
 use bevy_egui::{EguiContexts, egui};
 
+use super::flash::Flashes;
 use super::style::{backdrop, button, c32, centered_lines, lines_height, place, rect_at};
 use crate::consts::{
     PANEL_COLOR, PANEL_GAP, SCORE_PANEL_WIDTH_PCT, SELL_FRACTIONS, SQUARE_BUTTON_FONT_SIZE,
-    SQUARE_HEIGHT_PCT, STOCK_DOWN_COLOR, STOCK_FONT_SIZE, STOCK_UP_COLOR,
+    SQUARE_HEIGHT_PCT, STOCK_DOWN_COLOR, STOCK_FONT_SIZE, STOCK_UP_COLOR, TRIGGER_FLASH_COLOR,
 };
 use crate::general::Portfolio;
 use crate::stocks::Market;
@@ -16,6 +18,7 @@ pub fn portfolio_ui(
     mut contexts: EguiContexts,
     mut portfolio: ResMut<Portfolio>,
     market: Res<Market>,
+    flashes: Res<Flashes>,
 ) -> Result {
     let ctx = contexts.ctx_mut()?;
     let screen = ctx.content_rect();
@@ -34,7 +37,8 @@ pub fn portfolio_ui(
     for slot in 0..portfolio.max_size {
         let x = left + spacing * (slot as f32 + 1.0) + side * slot as f32;
         let square = rect_at(x, h - PANEL_GAP - side, side, side);
-        bg.rect_filled(square, 0.0, c32(PANEL_COLOR));
+        let color = PANEL_COLOR.mix(&TRIGGER_FLASH_COLOR, flashes.holding(slot));
+        bg.rect_filled(square, 0.0, c32(color));
 
         let held = portfolio
             .slots

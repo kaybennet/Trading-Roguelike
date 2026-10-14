@@ -2,6 +2,7 @@ use bevy::prelude::*;
 
 use super::AppState;
 use crate::consts::START_GAME_STATE;
+use crate::modifiers::ModifierId;
 
 pub struct GameStatePlugin;
 
@@ -18,6 +19,8 @@ pub struct GameState {
     pub invested_euro: f64,
     pub date: Date,
     pub interest: f64,
+    /// Bought modifier cards; each already took effect when bought.
+    pub modifiers: Vec<ModifierId>,
 }
 
 #[derive(Default)]

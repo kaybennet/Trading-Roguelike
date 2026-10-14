@@ -2,7 +2,10 @@ mod consts;
 mod debug;
 mod general;
 mod input;
+mod jokers;
+mod modifiers;
 mod screens;
+mod shop;
 mod stocks;
 
 use bevy::prelude::*;
@@ -18,6 +21,8 @@ fn main() {
             general::GeneralPlugin,
             screens::ScreensPlugin,
             stocks::StocksPlugin,
+            jokers::JokersPlugin,
+            shop::ShopPlugin,
         ))
         .add_systems(Startup, setup)
         .run();
