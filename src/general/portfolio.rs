@@ -1,6 +1,8 @@
 use bevy::prelude::*;
 
-use super::{AppState, GameState};
+use rand::RngExt;
+
+use super::{AppState, GameState, GlobalRng};
 use crate::consts::{MIN_SHARES, START_CASH, START_PORTFOLIO_SIZE};
 use crate::jokers::JokerId;
 use crate::stocks::{Market, Stock};
@@ -10,16 +12,30 @@ pub struct PortfolioPlugin;
 impl Plugin for PortfolioPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<Portfolio>()
+            .add_message::<Sold>()
             .add_systems(Update, (resize_portfolio, update_invested).chain())
             .add_systems(OnExit(AppState::GameOver), reset_portfolio);
     }
 }
+
+/// Sent when the player sells a share of the stock with this symbol.
+#[derive(Message, Clone)]
+pub struct Sold(pub String);
 
 #[derive(Clone)]
 pub struct Holding {
     pub symbol: String,
     pub shares: f64,
     pub avg_cost: f64,
+}
+
+impl Holding {
+    /// Adds one share at no cost, lowering the average cost.
+    pub fn add_free_share(&mut self) {
+        let total_cost = self.avg_cost * self.shares;
+        self.shares += 1.0;
+        self.avg_cost = total_cost / self.shares;
+    }
 }
 
 #[derive(Resource)]
@@ -67,7 +83,24 @@ impl Portfolio {
         true
     }
 
-    /// Sells `fraction` (0..=1) of the held shares of `stock`.
+    pub fn move_joker(&mut self, from: usize, to: usize) {
+        if from >= self.jokers.len() {
+            return;
+        }
+        let joker = self.jokers.remove(from);
+        self.jokers.insert(to.min(self.jokers.len()), joker);
+    }
+
+    pub fn sell_one(&mut self, stock: &Stock) -> bool {
+        let shares = self
+            .slots
+            .iter()
+            .flatten()
+            .find(|h| h.symbol == stock.symbol)
+            .map_or(0.0, |h| h.shares);
+        shares > 0.0 && self.sell(stock, (1.0 / shares).min(1.0))
+    }
+
     pub fn sell(&mut self, stock: &Stock, fraction: f64) -> bool {
         let slots = &mut self.slots;
         let Some(slot) = slots
@@ -86,6 +119,15 @@ impl Portfolio {
             slots[slot] = None;
         }
         true
+    }
+
+    pub fn rnd_holding(&mut self, rng: &mut GlobalRng) -> Option<&mut Holding> {
+        let held: Vec<&mut Holding> = self.slots.iter_mut().flatten().collect();
+        let count = held.len();
+        if count == 0 {
+            return None;
+        }
+        held.into_iter().nth(rng.random_range(0..count))
     }
 }
 

@@ -10,7 +10,8 @@ use bevy_egui::{
 };
 
 use super::vsync::vsync_enabled;
-use crate::consts::{DEBUG_BG_COLOR, DEBUG_FONT_SIZE, DEBUG_MARGIN, DEBUG_UPDATE_INTERVAL};
+use crate::colors::DEBUG_BG_COLOR;
+use crate::consts::{DEBUG_FONT_SIZE, DEBUG_MARGIN, DEBUG_UPDATE_INTERVAL};
 use crate::input::Toggle;
 
 pub struct OverlayPlugin;

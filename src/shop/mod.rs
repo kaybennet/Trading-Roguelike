@@ -5,6 +5,7 @@ use crate::consts::{JOKER_COUNT, SHOP_OFFER_SIZE};
 use crate::general::{AppState, GameState, GlobalRng, Portfolio};
 use crate::jokers::JokerId;
 use crate::modifiers::ModifierId;
+use crate::rarity::Rarity;
 
 pub struct ShopPlugin;
 
@@ -44,10 +45,10 @@ impl Card {
         }
     }
 
-    fn draw_weight(self) -> u32 {
+    pub fn rarity(self) -> Rarity {
         match self {
-            Self::Joker(joker) => joker.draw_weight(),
-            Self::Modifier(modifier) => modifier.draw_weight(),
+            Self::Joker(joker) => joker.rarity(),
+            Self::Modifier(modifier) => modifier.rarity(),
         }
     }
 
@@ -94,5 +95,5 @@ fn roll_offer(mut offer: ResMut<ShopOffer>, mut rng: ResMut<GlobalRng>) {
         .map(Card::Joker)
         .chain(ModifierId::iter().map(Card::Modifier))
         .collect();
-    offer.0 = rng.draw_weighted(pool, SHOP_OFFER_SIZE, |card| card.draw_weight());
+    offer.0 = rng.draw_weighted(pool, SHOP_OFFER_SIZE, |card| card.rarity().draw_weight());
 }

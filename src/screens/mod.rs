@@ -1,8 +1,10 @@
+mod chart;
 mod flash;
 mod game;
 mod game_over;
 mod joker_shop;
 mod jokers;
+mod market;
 mod portfolio;
 mod style;
 mod ticker;
@@ -22,10 +24,12 @@ impl Plugin for ScreensPlugin {
             .add_systems(
                 EguiPrimaryContextPass,
                 (
+                    style::apply_theme,
                     game::game_ui,
                     jokers::jokers_ui,
                     ticker::ticker_ui,
                     portfolio::portfolio_ui,
+                    market::market_ui,
                     joker_shop::joker_shop_ui.run_if(in_state(AppState::JokerShop)),
                     game_over::game_over_ui.run_if(in_state(AppState::GameOver)),
                 )

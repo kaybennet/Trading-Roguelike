@@ -1,9 +1,11 @@
+mod colors;
 mod consts;
 mod debug;
 mod general;
 mod input;
 mod jokers;
 mod modifiers;
+mod rarity;
 mod screens;
 mod shop;
 mod stocks;

@@ -1,29 +1,41 @@
 use bevy::prelude::*;
 
-use crate::general::{Portfolio, Sequence, SequenceSet, Triggered};
+use crate::general::{Portfolio, Sequence, SequenceSet, Sold, Triggered};
+use crate::stocks::Market;
 
 pub struct ListenersPlugin;
 
 impl Plugin for ListenersPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Update, retrigger_dividends.after(SequenceSet));
+        app.add_systems(Update, joker_listeners.after(SequenceSet));
     }
 }
 
-/// Jokers that listen for a dividend trigger it again, right after it fired.
-fn retrigger_dividends(
+fn joker_listeners(
     mut triggered: MessageReader<Triggered>,
+    mut sold: MessageReader<Sold>,
     portfolio: Res<Portfolio>,
     mut sequence: ResMut<Sequence>,
+    mut market: ResMut<Market>,
 ) {
     for step in triggered.read() {
         let Triggered::Dividend(slot) = *step else {
             continue;
         };
+        let times: usize = (portfolio.jokers.iter())
+            .map(|joker| joker.dividend_multiplier())
+            .product();
+        for _ in 1..times {
+            sequence.push_next(Triggered::RepeatedDividend(slot));
+        }
+    }
+
+    for Sold(symbol) in sold.read() {
+        let Some(stock) = market.stocks.iter_mut().find(|s| &s.symbol == symbol) else {
+            continue;
+        };
         for joker in &portfolio.jokers {
-            for _ in 0..joker.dividend_retriggers() {
-                sequence.push_next(Triggered::RepeatedDividend(slot));
-            }
+            stock.scale_price(joker.sell_price_factor());
         }
     }
 }

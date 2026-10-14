@@ -1,6 +1,7 @@
 use strum::{EnumIter, IntoStaticStr};
 
 use crate::general::{GameState, Portfolio};
+use crate::rarity::Rarity;
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug, EnumIter, IntoStaticStr)]
 pub enum ModifierId {
@@ -31,11 +32,12 @@ impl ModifierId {
         }
     }
 
-    pub fn draw_weight(self) -> u32 {
+    pub fn rarity(self) -> Rarity {
         match self {
-            Self::Wallet => 10,
-            Self::Compound | Self::Savings => 3,
-            Self::Bonds | Self::Leverage => 2,
+            Self::Wallet => Rarity::Common,
+            Self::Compound | Self::Savings => Rarity::Uncommon,
+            Self::Bonds => Rarity::Rare,
+            Self::Leverage => Rarity::Epic,
         }
     }
 

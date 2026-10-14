@@ -11,8 +11,8 @@ use crate::consts::SEED;
 
 pub use app_state::AppState;
 pub use game_state::{Date, GameState};
-pub use portfolio::Portfolio;
-pub use turn::{Sequence, SequenceSet, Triggered, TurnEnded};
+pub use portfolio::{Portfolio, Sold};
+pub use turn::{CashGained, Sequence, SequenceSet, SharesGained, Triggered, TurnEnded};
 
 /// The one random number generator, seeded with `SEED`.
 #[derive(Resource, Deref, DerefMut)]

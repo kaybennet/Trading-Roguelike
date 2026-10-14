@@ -35,6 +35,13 @@ impl Stock {
         }
     }
 
+    /// Multiplies the current price by `factor`.
+    pub fn scale_price(&mut self, factor: f32) {
+        if let Some(price) = self.history.back_mut() {
+            *price = (*price * factor).max(STOCK_MIN_PRICE);
+        }
+    }
+
     fn record(&mut self, price: f32) {
         self.history.push_back(price);
         while self.history.len() > MARKET_HISTORY_WEEKS {

@@ -1,22 +1,26 @@
 use strum::{EnumIter, IntoStaticStr};
 
-use crate::general::{GameState, Portfolio};
+use crate::general::{GameState, GlobalRng, Portfolio};
+use crate::rarity::Rarity;
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug, EnumIter, IntoStaticStr)]
 pub enum JokerId {
-    Bull,
-    Bear,
-    Hedge,
-    Dividend,
+    #[strum(serialize = "Double Dividend")]
+    DoubleDividend,
     #[strum(serialize = "Triple Dividend")]
     TripleDividend,
-    Insider,
-    #[strum(serialize = "Day Trader")]
-    DayTrader,
-    Whale,
-    Penny,
+    #[strum(serialize = "Quadruple Dividend")]
+    QuadrupleDividend,
+    #[strum(serialize = "Magic Sell")]
+    MagicSell,
+    #[strum(serialize = "Steady Income")]
+    SteadyIncome,
+    #[strum(serialize = "Autonomic Gain")]
+    AutonomicGain,
 }
 
+use JokerId::*;
+use Rarity::*;
 impl JokerId {
     pub fn name(self) -> &'static str {
         self.into()
@@ -24,53 +28,69 @@ impl JokerId {
 
     pub fn price(self) -> f64 {
         match self {
-            Self::Bull | Self::Bear => 30.0,
-            Self::Hedge => 40.0,
-            Self::Dividend => 25.0,
-            Self::TripleDividend => 55.0,
-            Self::Insider => 60.0,
-            Self::DayTrader => 35.0,
-            Self::Whale => 80.0,
-            Self::Penny => 15.0,
+            DoubleDividend => 15.0,
+            TripleDividend => 25.0,
+            QuadrupleDividend => 40.0,
+            MagicSell => 20.0,
+            SteadyIncome => 10.0,
+            AutonomicGain => 20.,
         }
     }
 
-    pub fn draw_weight(self) -> u32 {
+    pub fn rarity(self) -> Rarity {
         match self {
-            Self::Penny | Self::Dividend => 10,
-            Self::Bull | Self::Bear | Self::DayTrader => 8,
-            Self::Hedge => 5,
-            Self::Insider | Self::TripleDividend => 3,
-            Self::Whale => 1,
+            DoubleDividend => Rare,
+            TripleDividend => Legendary,
+            QuadrupleDividend => Mythic,
+            MagicSell => Uncommon,
+            SteadyIncome => Common,
+            AutonomicGain => Rare,
         }
     }
 
     pub fn description(self) -> &'static str {
         match self {
-            Self::TripleDividend => "Dividends trigger 3x",
-            _ => "+€1 on buy",
-        }
-    }
-
-    /// How many extra times this joker triggers a dividend it hears about.
-    pub fn dividend_retriggers(self) -> usize {
-        match self {
-            Self::TripleDividend => 2,
-            _ => 0,
+            DoubleDividend => "Dividends trigger x2 (stacks by multiplying)",
+            TripleDividend => "Dividends trigger x3 (stacks by multiplying)",
+            QuadrupleDividend => "Dividends trigger x4 (stacks by multiplying)",
+            MagicSell => "Selling a share raises that stock's price by 1%",
+            SteadyIncome => "Gain €5 per week",
+            AutonomicGain => "Every week gain 1 share of a random stock in your portfolio",
         }
     }
 
     pub fn on_buy(self, portfolio: &mut Portfolio) {
         match self {
-            _ => portfolio.cash += 1.,
+            _ => {}
         }
     }
 
-    /// What the joker does when a turn ends, or `None` if it does nothing then.
-    pub fn turn_effect(self) -> Option<fn(&mut Portfolio, &mut GameState)> {
+    pub fn turn_effect(self) -> Option<fn(&mut Portfolio, &mut GameState, &mut GlobalRng)> {
         match self {
-            Self::TripleDividend => None,
-            _ => Some(|portfolio, _| portfolio.cash += 50.),
+            SteadyIncome => Some(|p, _, _| p.cash += 5.),
+            AutonomicGain => Some(|p, _, rng| {
+                if let Some(holding) = p.rnd_holding(rng) {
+                    holding.add_free_share();
+                }
+            }),
+            _ => None,
+        }
+    }
+
+    /// How many times this joker multiplies the number of dividend triggers.
+    /// Owning several multiplies them together, so Double + Triple pays 6 times.
+    pub fn dividend_multiplier(self) -> usize {
+        match self {
+            DoubleDividend => 2,
+            TripleDividend => 3,
+            QuadrupleDividend => 4,
+            _ => 1,
+        }
+    }
+
+    pub fn sell_price_factor(self) -> f32 {
+        match self {
+            _ => 1.0,
         }
     }
 }
