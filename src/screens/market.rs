@@ -9,7 +9,7 @@ use super::style::{button, c32, rect_at};
 use crate::colors::BG_BOTTOM_COLOR;
 use crate::consts::{HOVER_SECS, PANEL_GAP, TOP_BAR_FONT_SIZE};
 use crate::general::Portfolio;
-use crate::stocks::Market;
+use crate::stocks::{Market, Ticker};
 
 const COLUMNS: usize = 4;
 const HEADER_HEIGHT: f32 = 56.0;
@@ -37,7 +37,7 @@ pub fn market_ui(
         return Ok(());
     }
     let screen = ctx.content_rect();
-    let focus: Option<String> = ctx.data(|d| d.get_temp(focus_id()));
+    let focus: Option<Ticker> = ctx.data(|d| d.get_temp(focus_id()));
     let mut new_focus = focus.clone();
     let mut close = false;
     if ctx.input(|i| i.key_pressed(Key::Escape)) {
@@ -95,17 +95,17 @@ pub fn market_ui(
                     screen.bottom() - PANEL_GAP * 2.0,
                 ),
             );
-            let avg_cost = |symbol: &str| {
+            let avg_cost = |ticker: Ticker| {
                 portfolio
                     .slots
                     .iter()
                     .flatten()
-                    .find(|h| h.symbol == symbol)
+                    .find(|h| h.ticker == ticker)
                     .map(|h| h.avg_cost)
             };
 
-            if let Some(stock) = focus.as_deref().and_then(|s| market.get(s)) {
-                draw_chart(&painter, content, stock, avg_cost(&stock.symbol), 0.0);
+            if let Some(stock) = focus.map(|t| market.get(t)) {
+                draw_chart(&painter, content, stock, avg_cost(stock.ticker), 0.0);
                 return;
             }
             let rows = market.stocks.len().div_ceil(COLUMNS).max(1);
@@ -119,31 +119,28 @@ pub fn market_ui(
                     cell_w,
                     cell_h,
                 );
-                let response = ui.interact(
-                    cell,
-                    Id::new(("market_cell", &stock.symbol)),
-                    Sense::click(),
-                );
+                let response =
+                    ui.interact(cell, Id::new(("market_cell", stock.ticker)), Sense::click());
                 let hover =
                     ui.ctx()
                         .animate_bool_with_time(response.id, response.hovered(), HOVER_SECS);
                 if response.hovered() {
                     ui.ctx().set_cursor_icon(egui::CursorIcon::PointingHand);
                 }
-                draw_chart(&painter, cell, stock, avg_cost(&stock.symbol), hover);
+                draw_chart(&painter, cell, stock, avg_cost(stock.ticker), hover);
                 if response.clicked() {
-                    new_focus = Some(stock.symbol.clone());
+                    new_focus = Some(stock.ticker);
                 }
             }
         });
 
     ctx.data_mut(|d| {
         match new_focus {
-            Some(symbol) if !close => {
-                d.insert_temp(focus_id(), symbol);
+            Some(ticker) if !close => {
+                d.insert_temp(focus_id(), ticker);
             }
             _ => {
-                d.remove_temp::<String>(focus_id());
+                d.remove_temp::<Ticker>(focus_id());
             }
         }
         if close {

@@ -59,7 +59,7 @@ pub fn game_over_ui(
                 Color32::WHITE.gamma_multiply(fade),
             );
             if response.clicked() {
-                next_state.set(AppState::Playing);
+                next_state.set(AppState::DuringWeek);
                 ui.ctx().animate_bool_with_time(fade_id, false, 0.0);
             }
         });

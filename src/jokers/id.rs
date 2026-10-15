@@ -4,13 +4,15 @@ use crate::general::{GameState, GlobalRng, Portfolio};
 use crate::rarity::Rarity;
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug, EnumIter, IntoStaticStr)]
-pub enum JokerId {
+pub enum Joker {
     #[strum(serialize = "Double Dividend")]
     DoubleDividend,
     #[strum(serialize = "Triple Dividend")]
     TripleDividend,
     #[strum(serialize = "Quadruple Dividend")]
     QuadrupleDividend,
+    #[strum(serialize = "Increased Dividend")]
+    IncreasedDividend,
     #[strum(serialize = "Magic Sell")]
     MagicSell,
     #[strum(serialize = "Steady Income")]
@@ -19,9 +21,9 @@ pub enum JokerId {
     AutonomicGain,
 }
 
-use JokerId::*;
+use Joker::*;
 use Rarity::*;
-impl JokerId {
+impl Joker {
     pub fn name(self) -> &'static str {
         self.into()
     }
@@ -34,6 +36,7 @@ impl JokerId {
             MagicSell => 20.0,
             SteadyIncome => 10.0,
             AutonomicGain => 20.,
+            IncreasedDividend => 10.,
         }
     }
 
@@ -45,6 +48,7 @@ impl JokerId {
             MagicSell => Uncommon,
             SteadyIncome => Common,
             AutonomicGain => Rare,
+            IncreasedDividend => Common,
         }
     }
 
@@ -56,6 +60,7 @@ impl JokerId {
             MagicSell => "Selling a share raises that stock's price by 1%",
             SteadyIncome => "Gain €5 per week",
             AutonomicGain => "Every week gain 1 share of a random stock in your portfolio",
+            IncreasedDividend => "Increases Dividends in your Portfolio by €1",
         }
     }
 
@@ -74,23 +79,6 @@ impl JokerId {
                 }
             }),
             _ => None,
-        }
-    }
-
-    /// How many times this joker multiplies the number of dividend triggers.
-    /// Owning several multiplies them together, so Double + Triple pays 6 times.
-    pub fn dividend_multiplier(self) -> usize {
-        match self {
-            DoubleDividend => 2,
-            TripleDividend => 3,
-            QuadrupleDividend => 4,
-            _ => 1,
-        }
-    }
-
-    pub fn sell_price_factor(self) -> f32 {
-        match self {
-            _ => 1.0,
         }
     }
 }

@@ -91,11 +91,11 @@ pub fn draw_chart(painter: &Painter, rect: Rect, stock: &Stock, avg_cost: Option
     let (low, high) = range(&history);
     let up = last >= first;
     let color = trend_color(up);
-    let line_color = c32(stock_color(&stock.symbol));
+    let line_color = c32(stock_color(stock.ticker));
     painter.text(
         Pos2::new(panel.left() + pad, panel.top() + pad),
         Align2::LEFT_TOP,
-        &stock.symbol,
+        stock.ticker.name(),
         font(24.0),
         line_color,
     );

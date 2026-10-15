@@ -75,9 +75,9 @@ pub const JOKER_PANEL_WIDTH_PCT: f32 = 20.0;
 pub const JOKER_HEIGHT_PCT: f32 = 8.0;
 pub const JOKER_FONT_SIZE: f32 = 20.0;
 /// Pause between one end-of-turn trigger (dividend or joker) and the next.
-pub const TRIGGER_SECS: f32 = 0.25;
+pub const TRIGGER_SECS: f32 = 0.6;
 /// Each trigger in a sequence waits this fraction of the previous pause, down to a floor.
-pub const TRIGGER_SPEEDUP: f32 = 0.85;
+pub const TRIGGER_SPEEDUP: f32 = 0.8;
 pub const TRIGGER_MIN_SECS: f32 = 0.04;
 /// How long a trigger's flash takes to fade out.
 pub const TRIGGER_FLASH_SECS: f32 = 0.2;

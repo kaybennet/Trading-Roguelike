@@ -47,10 +47,8 @@ pub fn ticker_ui(
         + PANEL_GAP;
     let bg = backdrop(ctx);
 
-    for (index, symbol) in offer.0.iter().enumerate() {
-        let Some(stock) = market.get(symbol) else {
-            continue;
-        };
+    for (index, &ticker) in offer.0.iter().enumerate() {
+        let stock = market.get(ticker);
         let x = band_x + spacing * (index as f32 + 1.0) + card_w * index as f32;
         let base = rect_at(x, band_center_y - card_h / 2.0, card_w, card_h);
         let affordable = portfolio.cash >= stock.price() as f64;
@@ -64,7 +62,7 @@ pub fn ticker_ui(
         } else {
             STOCK_DOWN_COLOR
         });
-        let name_color = c32(stock_color(&stock.symbol));
+        let name_color = c32(stock_color(stock.ticker));
         let (color, name_color) = if affordable {
             (color, name_color)
         } else {
@@ -96,13 +94,20 @@ pub fn ticker_ui(
                 &bg,
                 x,
                 card_rect.top() + PANEL_GAP * 2.0,
-                &[stock.symbol.clone()],
+                &[stock.ticker.name().to_string()],
                 TICKER_FONT_SIZE,
                 name_color,
             );
             centered_lines(&bg, x, below_name, &lines, TICKER_FONT_SIZE, color);
         }
 
+        bg.text(
+            egui::pos2(card_rect.left() + PANEL_GAP, card_rect.top() + PANEL_GAP),
+            egui::Align2::LEFT_TOP,
+            stock.country,
+            egui::FontId::proportional(STOCK_FONT_SIZE),
+            muted(),
+        );
         bg.text(
             egui::pos2(card_rect.right() - PANEL_GAP, card_rect.top() + PANEL_GAP),
             egui::Align2::RIGHT_TOP,

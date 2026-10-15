@@ -3,7 +3,7 @@ mod listeners;
 
 use bevy::prelude::*;
 
-pub use id::JokerId;
+pub use id::Joker;
 
 pub struct JokersPlugin;
 

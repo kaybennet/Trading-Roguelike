@@ -13,7 +13,7 @@ use crate::consts::{
     JOKER_PANEL_WIDTH_PCT, PANEL_GAP, SCORE_FONT_SIZE, SCORE_PANEL_WIDTH_PCT, TOP_BAR_FONT_SIZE,
     TOP_BAR_HEIGHT_PCT,
 };
-use crate::general::{Date, GameState, Portfolio, Sequence, TurnEnded};
+use crate::general::{AppState, Date, GameEvent, GameState, Portfolio};
 
 const LABEL_FONT_SIZE: f32 = 14.0;
 const CONTINUE_HEIGHT: f32 = 48.0;
@@ -25,8 +25,9 @@ pub fn game_ui(
     mut contexts: EguiContexts,
     state: Res<GameState>,
     portfolio: Res<Portfolio>,
-    mut turns: MessageWriter<TurnEnded>,
-    sequence: Res<Sequence>,
+    mut events: MessageWriter<GameEvent>,
+    app_state: Res<State<AppState>>,
+    mut next_state: ResMut<NextState<AppState>>,
 ) -> Result {
     let ctx = contexts.ctx_mut()?;
     let screen = ctx.content_rect();
@@ -94,6 +95,11 @@ pub fn game_ui(
             Color32::WHITE,
         ),
         (
+            "WORTH",
+            format!("€{:.2}", cash + state.invested_euro),
+            Color32::WHITE,
+        ),
+        (
             "MONTHLY DEBT",
             format!("€{:.2}", state.monthly_debt_euro),
             Color32::WHITE,
@@ -136,10 +142,11 @@ pub fn game_ui(
         }
     });
     place(ctx, "continue", continue_rect, |ui| {
-        // Locked until the end-of-turn triggers have all played out.
-        ui.add_enabled_ui(!sequence.is_busy(), |ui| {
+        // Locked while the end-of-week triggers play out.
+        ui.add_enabled_ui(*app_state.get() == AppState::DuringWeek, |ui| {
             if button(ui, "Continue", TOP_BAR_FONT_SIZE, continue_size).clicked() {
-                turns.write(TurnEnded);
+                events.write(GameEvent::TurnEnded);
+                next_state.set(AppState::EndOfWeek);
             }
         });
     });

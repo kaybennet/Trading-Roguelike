@@ -1,9 +1,9 @@
 use bevy::prelude::*;
 use rand::RngExt;
 
-use super::Market;
+use super::{Market, Ticker};
 use crate::consts::OFFER_SIZE;
-use crate::general::{AppState, GlobalRng, TurnEnded};
+use crate::general::{AppState, GameEvent, GlobalRng, turns_ended};
 
 pub struct OfferPlugin;
 
@@ -16,29 +16,29 @@ impl Plugin for OfferPlugin {
 }
 
 #[derive(Resource, Default)]
-pub struct WeeklyOffer(pub Vec<String>);
+pub struct WeeklyOffer(pub Vec<Ticker>);
 
 fn clear_offer(mut offer: ResMut<WeeklyOffer>) {
     offer.0.clear();
 }
 
 fn roll_offer(
-    mut turns: MessageReader<TurnEnded>,
+    mut events: MessageReader<GameEvent>,
     market: Res<Market>,
     mut rng: ResMut<GlobalRng>,
     mut offer: ResMut<WeeklyOffer>,
 ) {
-    let turn_ended = turns.read().count() > 0;
+    let turn_ended = turns_ended(&mut events) > 0;
     if !turn_ended && !offer.0.is_empty() {
         return;
     }
-    let pool: Vec<String> = market.stocks.iter().map(|s| s.symbol.clone()).collect();
+    let pool: Vec<Ticker> = market.stocks.iter().map(|s| s.ticker).collect();
     if pool.len() >= OFFER_SIZE {
         offer.0 = pick_distinct(pool, OFFER_SIZE, &mut rng);
     }
 }
 
-fn pick_distinct(mut pool: Vec<String>, count: usize, rng: &mut GlobalRng) -> Vec<String> {
+fn pick_distinct(mut pool: Vec<Ticker>, count: usize, rng: &mut GlobalRng) -> Vec<Ticker> {
     (0..count)
         .map(|_| pool.swap_remove(rng.random_range(0..pool.len())))
         .collect()

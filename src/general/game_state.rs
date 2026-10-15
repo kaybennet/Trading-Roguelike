@@ -19,7 +19,6 @@ pub struct GameState {
     pub invested_euro: f64,
     pub date: Date,
     pub interest: f64,
-    /// Bought modifier cards; each already took effect when bought.
     pub modifiers: Vec<ModifierId>,
 }
 

@@ -1,6 +1,7 @@
 use bevy::prelude::Color;
 
 use crate::rarity::Rarity;
+use crate::stocks::Ticker;
 
 pub const DEBUG_BG_COLOR: Color = Color::srgb(0.3, 0.3, 0.3);
 pub const SCORE_BOX_COLOR: Color = Color::srgb(0.1, 0.12, 0.17);
@@ -35,10 +36,10 @@ const STOCK_COLORS: [(&str, Color); 12] = [
     ("LUMA", Color::srgb(0.8, 0.85, 1.0)),
 ];
 
-pub fn stock_color(symbol: &str) -> Color {
+pub fn stock_color(ticker: Ticker) -> Color {
     STOCK_COLORS
         .iter()
-        .find(|(s, _)| *s == symbol)
+        .find(|(s, _)| *s == ticker.name())
         .map_or(MUTED_COLOR, |&(_, color)| color)
 }
 

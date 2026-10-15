@@ -13,7 +13,7 @@ use super::style::{
 };
 use crate::colors::{PANEL_COLOR, SCORE_BOX_COLOR, STOCK_DOWN_COLOR, STOCK_UP_COLOR, stock_color};
 use crate::consts::{PANEL_GAP, SCORE_PANEL_WIDTH_PCT, SQUARE_HEIGHT_PCT, STOCK_FONT_SIZE};
-use crate::general::{Portfolio, Sold};
+use crate::general::{GameEvent, Portfolio, Sold};
 use crate::stocks::Market;
 
 const MIN_SPACING: f32 = 4.0;
@@ -32,7 +32,7 @@ pub fn portfolio_ui(
     mut portfolio: ResMut<Portfolio>,
     market: Res<Market>,
     flashes: Res<Flashes>,
-    mut sold: MessageWriter<Sold>,
+    mut events: MessageWriter<GameEvent>,
 ) -> Result {
     let ctx = contexts.ctx_mut()?;
     let screen = ctx.content_rect();
@@ -60,15 +60,10 @@ pub fn portfolio_ui(
         let hover = hover_amount(ctx, ("holding", slot), base);
         let hold_id = Id::new(("sell_hold", slot));
 
-        let held = portfolio
-            .slots
-            .get(slot)
-            .cloned()
-            .flatten()
-            .and_then(|holding| {
-                let stock = market.get(&holding.symbol)?;
-                Some((holding, stock))
-            });
+        let held = portfolio.slots.get(slot).cloned().flatten().map(|holding| {
+            let stock = market.get(holding.ticker);
+            (holding, stock)
+        });
         let Some((holding, stock)) = &held else {
             ctx.data_mut(|d| d.remove_temp::<(f64, f64)>(hold_id));
             let square = card(&bg, base, PANEL_COLOR, 0.0, flashes.holding(slot));
@@ -89,7 +84,7 @@ pub fn portfolio_ui(
         let gain = (price / holding.avg_cost - 1.0) * 100.0;
         let up = gain >= 0.0;
         let trend = trend_color(up);
-        let name_color = c32(stock_color(&holding.symbol));
+        let name_color = c32(stock_color(holding.ticker));
         // The card is faintly tinted by whether the position is in profit.
         let tint = PANEL_COLOR.mix(&if up { STOCK_UP_COLOR } else { STOCK_DOWN_COLOR }, 0.08);
         let square = card(&bg, base, tint, hover, flashes.holding(slot));
@@ -101,15 +96,22 @@ pub fn portfolio_ui(
         bg.text(
             Pos2::new(inner_left, y),
             Align2::LEFT_TOP,
-            &holding.symbol,
+            holding.ticker.name(),
             FontId::proportional(SYMBOL_SIZE),
             name_color,
+        );
+        bg.text(
+            Pos2::new(inner_right, y + (SYMBOL_SIZE - DETAIL_SIZE) / 2.0),
+            Align2::RIGHT_TOP,
+            stock.country,
+            FontId::proportional(DETAIL_SIZE),
+            muted(),
         );
         y += lines_height(1, SYMBOL_SIZE);
         bg.text(
             Pos2::new(inner_left, y),
             Align2::LEFT_TOP,
-            format!("€{value:.2}"),
+            format!("€{price:.2}"),
             FontId::proportional(VALUE_SIZE),
             Color32::WHITE,
         );
@@ -195,7 +197,7 @@ pub fn portfolio_ui(
 
         for _ in 0..sells {
             if portfolio.sell_one(stock) {
-                sold.write(Sold(stock.symbol.clone()));
+                events.write(GameEvent::Sold(Sold(stock.ticker)));
             }
         }
     }

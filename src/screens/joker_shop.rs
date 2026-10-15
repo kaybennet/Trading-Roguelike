@@ -189,7 +189,7 @@ pub fn joker_shop_ui(
         offer.buy(index, &mut portfolio, &mut state);
     }
     if done {
-        next_state.set(AppState::Playing);
+        next_state.set(AppState::DuringWeek);
     }
     Ok(())
 }

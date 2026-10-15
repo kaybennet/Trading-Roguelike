@@ -4,33 +4,27 @@ use rand::RngExt;
 
 use super::{AppState, GameState, GlobalRng};
 use crate::consts::{MIN_SHARES, START_CASH, START_PORTFOLIO_SIZE};
-use crate::jokers::JokerId;
-use crate::stocks::{Market, Stock};
+use crate::jokers::Joker;
+use crate::stocks::{Market, Stock, Ticker};
 
 pub struct PortfolioPlugin;
 
 impl Plugin for PortfolioPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<Portfolio>()
-            .add_message::<Sold>()
             .add_systems(Update, (resize_portfolio, update_invested).chain())
             .add_systems(OnExit(AppState::GameOver), reset_portfolio);
     }
 }
 
-/// Sent when the player sells a share of the stock with this symbol.
-#[derive(Message, Clone)]
-pub struct Sold(pub String);
-
 #[derive(Clone)]
 pub struct Holding {
-    pub symbol: String,
+    pub ticker: Ticker,
     pub shares: f64,
     pub avg_cost: f64,
 }
 
 impl Holding {
-    /// Adds one share at no cost, lowering the average cost.
     pub fn add_free_share(&mut self) {
         let total_cost = self.avg_cost * self.shares;
         self.shares += 1.0;
@@ -41,8 +35,7 @@ impl Holding {
 #[derive(Resource)]
 pub struct Portfolio {
     pub cash: f64,
-    /// Owned jokers, applied in order at the end of every turn.
-    pub jokers: Vec<JokerId>,
+    pub jokers: Vec<Joker>,
     pub max_size: usize,
     pub slots: Vec<Option<Holding>>,
 }
@@ -67,12 +60,12 @@ impl Portfolio {
         let slots = &mut self.slots;
         let existing = slots
             .iter()
-            .position(|s| s.as_ref().is_some_and(|h| h.symbol == stock.symbol));
+            .position(|s| s.as_ref().is_some_and(|h| h.ticker == stock.ticker));
         let Some(index) = existing.or_else(|| slots.iter().position(Option::is_none)) else {
             return false;
         };
         let holding = slots[index].get_or_insert(Holding {
-            symbol: stock.symbol.clone(),
+            ticker: stock.ticker,
             shares: 0.0,
             avg_cost: 0.0,
         });
@@ -96,7 +89,7 @@ impl Portfolio {
             .slots
             .iter()
             .flatten()
-            .find(|h| h.symbol == stock.symbol)
+            .find(|h| h.ticker == stock.ticker)
             .map_or(0.0, |h| h.shares);
         shares > 0.0 && self.sell(stock, (1.0 / shares).min(1.0))
     }
@@ -105,7 +98,7 @@ impl Portfolio {
         let slots = &mut self.slots;
         let Some(slot) = slots
             .iter()
-            .position(|s| s.as_ref().is_some_and(|h| h.symbol == stock.symbol))
+            .position(|s| s.as_ref().is_some_and(|h| h.ticker == stock.ticker))
         else {
             return false;
         };
@@ -143,7 +136,7 @@ fn update_invested(portfolio: Res<Portfolio>, market: Res<Market>, mut state: Re
         .slots
         .iter()
         .flatten()
-        .filter_map(|h| Some(h.shares * market.get(&h.symbol)?.price() as f64))
+        .map(|h| h.shares * market.get(h.ticker).price() as f64)
         .sum();
     if state.invested_euro != total {
         state.invested_euro = total;

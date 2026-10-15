@@ -1,12 +1,14 @@
 mod market;
 mod offer;
+mod stocks;
 
 use bevy::prelude::*;
 
-use crate::general::{AppState, GlobalRng, TurnEnded};
+use crate::general::{AppState, GameEvent, GlobalRng, turns_ended};
 
-pub use market::{Market, Stock};
+pub use market::Market;
 pub use offer::WeeklyOffer;
+pub use stocks::{Stock, Ticker};
 
 pub struct StocksPlugin;
 
@@ -23,11 +25,11 @@ impl Plugin for StocksPlugin {
 
 /// Prices only move when a turn (week) ends.
 fn evolve_prices(
-    mut turns: MessageReader<TurnEnded>,
+    mut events: MessageReader<GameEvent>,
     mut rng: ResMut<GlobalRng>,
     mut market: ResMut<Market>,
 ) {
-    if turns.read().count() == 0 {
+    if turns_ended(&mut events) == 0 {
         return;
     }
     market.advance_week(&mut rng);

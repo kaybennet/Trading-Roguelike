@@ -11,8 +11,8 @@ impl Plugin for AppStatePlugin {
 #[derive(States, Default, Clone, Copy, PartialEq, Eq, Hash, Debug)]
 pub enum AppState {
     #[default]
-    Playing,
-    /// Between months: the player may buy jokers.
+    DuringWeek,
+    EndOfWeek,
     JokerShop,
     GameOver,
 }

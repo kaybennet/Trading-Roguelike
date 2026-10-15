@@ -4,7 +4,7 @@ use bevy_egui::egui::{self, Align2, Color32, FontId, Id, LayerId, Order};
 
 use crate::colors::STOCK_UP_COLOR;
 use crate::consts::{FLOAT_FONT_SIZE, FLOAT_RISE, FLOAT_SECS, JOKER_COUNT, TRIGGER_FLASH_SECS};
-use crate::general::{CashGained, Portfolio, SharesGained, Triggered};
+use crate::general::{Boost, GameEvent, Triggered};
 
 use super::style::c32;
 
@@ -19,6 +19,8 @@ struct Float {
     anchor: Anchor,
     text: String,
     age: f32,
+    /// Cash total and how many payouts it sums, so repeats can be merged into it.
+    cash: Option<(f64, f64)>,
 }
 
 /// How long the flash of each portfolio and joker slot has left.
@@ -78,10 +80,7 @@ impl Flashes {
 /// Fades the flashes and lights up whatever just triggered.
 pub fn update_flashes(
     time: Res<Time>,
-    mut triggered: MessageReader<Triggered>,
-    mut gains: MessageReader<CashGained>,
-    mut share_gains: MessageReader<SharesGained>,
-    portfolio: Res<Portfolio>,
+    mut events: MessageReader<GameEvent>,
     mut flashes: ResMut<Flashes>,
 ) {
     let flashes = &mut *flashes;
@@ -89,40 +88,84 @@ pub fn update_flashes(
         float.age += time.delta_secs();
     }
     flashes.floats.retain(|f| f.age < FLOAT_SECS);
-    for gain in gains.read() {
+    let events: Vec<GameEvent> = events.read().cloned().collect();
+    let gains = events.iter().filter_map(|e| match e {
+        GameEvent::CashGained(gain) => Some(gain),
+        _ => None,
+    });
+    let share_gains = events.iter().filter_map(|e| match e {
+        GameEvent::SharesGained(gain) => Some(gain),
+        _ => None,
+    });
+    let triggered = events.iter().filter_map(|e| match e {
+        GameEvent::Triggered(step) => Some(step),
+        _ => None,
+    });
+    for gain in gains {
         let anchor = match gain.source {
-            Triggered::Dividend(slot) | Triggered::RepeatedDividend(slot) => Anchor::Holding(slot),
+            Triggered::Dividend(slot) | Triggered::DividendBoost { slot, .. } => {
+                Anchor::Holding(slot)
+            }
             Triggered::Joker(slot) => Anchor::Joker(slot),
         };
+        // A boost adds to the float of the dividend it boosts.
+        let boost = match gain.source {
+            Triggered::DividendBoost { boost, .. } => Some(boost),
+            _ => None,
+        };
+        let merge = boost
+            .is_some()
+            .then(|| {
+                flashes
+                    .floats
+                    .iter_mut()
+                    .rfind(|f| f.anchor == anchor && f.cash.is_some())
+            })
+            .flatten();
+        if let Some(float) = merge
+            && let Some((total, times)) = &mut float.cash
+        {
+            *total += gain.amount;
+            if let Some(Boost::Mul(factor)) = boost {
+                *times *= factor;
+            }
+            float.text = if *times > 1.0 {
+                format!("+€{total:.2} x{times}")
+            } else {
+                format!("+€{total:.2}")
+            };
+            float.age = 0.0;
+            continue;
+        }
         flashes.floats.push(Float {
             anchor,
             text: format!("+€{:.2}", gain.amount),
             age: 0.0,
+            cash: Some((gain.amount, 1.0)),
         });
     }
-    for gain in share_gains.read() {
+    for gain in share_gains {
         flashes.floats.push(Float {
             anchor: Anchor::Holding(gain.slot),
             text: format!("+{} share", gain.amount),
             age: 0.0,
+            cash: None,
         });
         flashes.flash_holding(gain.slot);
     }
     for left in flashes.holdings.iter_mut().chain(&mut flashes.jokers) {
         *left = (*left - time.delta_secs()).max(0.0);
     }
-    for step in triggered.read() {
+    for step in triggered {
         match *step {
-            Triggered::Dividend(slot) => flashes.flash_holding(slot),
-            Triggered::RepeatedDividend(slot) => {
+            Triggered::Dividend(slot) => {
                 flashes.flash_holding(slot);
-                // The jokers multiplying the dividend light up with every extra payout.
-                for (n, joker) in portfolio.jokers.iter().enumerate() {
-                    if joker.dividend_multiplier() > 1
-                        && let Some(left) = flashes.jokers.get_mut(n)
-                    {
-                        *left = TRIGGER_FLASH_SECS;
-                    }
+            }
+            Triggered::DividendBoost { slot, joker, .. } => {
+                flashes.flash_holding(slot);
+                // The joker of this step lights up.
+                if let Some(left) = flashes.jokers.get_mut(joker) {
+                    *left = TRIGGER_FLASH_SECS;
                 }
             }
             Triggered::Joker(slot) => {

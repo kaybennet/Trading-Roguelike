@@ -15,10 +15,10 @@ use crate::consts::{
     JOKER_SELL_FRACTION, PANEL_GAP, TICKER_HEIGHT_PCT, TICKER_TOP_PCT,
 };
 use crate::general::Portfolio;
-use crate::jokers::JokerId;
+use crate::jokers::Joker;
 
 /// Draws one joker's name and its position number inside `slot`.
-fn joker_label(painter: &egui::Painter, slot: egui::Rect, index: usize, joker: JokerId) {
+fn joker_label(painter: &egui::Painter, slot: egui::Rect, index: usize, joker: Joker) {
     painter.text(
         slot.center(),
         Align2::CENTER_CENTER,

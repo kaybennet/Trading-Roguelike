@@ -1,4 +1,5 @@
 mod app_state;
+mod game_events;
 mod game_state;
 mod portfolio;
 mod turn;
@@ -10,9 +11,10 @@ use rand::{RngExt, SeedableRng};
 use crate::consts::SEED;
 
 pub use app_state::AppState;
+pub use game_events::{Boost, CashGained, GameEvent, SharesGained, Sold, Triggered, turns_ended};
 pub use game_state::{Date, GameState};
-pub use portfolio::{Portfolio, Sold};
-pub use turn::{CashGained, Sequence, SequenceSet, SharesGained, Triggered, TurnEnded};
+pub use portfolio::Portfolio;
+pub use turn::Sequence;
 
 /// The one random number generator, seeded with `SEED`.
 #[derive(Resource, Deref, DerefMut)]
@@ -51,6 +53,7 @@ impl Plugin for GeneralPlugin {
     fn build(&self, app: &mut App) {
         app.insert_resource(GlobalRng(StdRng::seed_from_u64(SEED)))
             .add_plugins((
+                game_events::GameEventsPlugin,
                 app_state::AppStatePlugin,
                 game_state::GameStatePlugin,
                 turn::TurnPlugin,

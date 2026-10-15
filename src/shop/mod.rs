@@ -3,7 +3,7 @@ use strum::IntoEnumIterator;
 
 use crate::consts::{JOKER_COUNT, SHOP_OFFER_SIZE};
 use crate::general::{AppState, GameState, GlobalRng, Portfolio};
-use crate::jokers::JokerId;
+use crate::jokers::Joker;
 use crate::modifiers::ModifierId;
 use crate::rarity::Rarity;
 
@@ -19,7 +19,7 @@ impl Plugin for ShopPlugin {
 /// Something the shop sells. Jokers and modifiers are drawn from one pool.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum Card {
-    Joker(JokerId),
+    Joker(Joker),
     Modifier(ModifierId),
 }
 
@@ -91,7 +91,7 @@ impl ShopOffer {
 }
 
 fn roll_offer(mut offer: ResMut<ShopOffer>, mut rng: ResMut<GlobalRng>) {
-    let pool = JokerId::iter()
+    let pool = Joker::iter()
         .map(Card::Joker)
         .chain(ModifierId::iter().map(Card::Modifier))
         .collect();
