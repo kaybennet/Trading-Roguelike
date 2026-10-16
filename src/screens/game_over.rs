@@ -22,10 +22,9 @@ pub fn game_over_ui(
     let screen = ctx.content_rect();
     let fade_id = Id::new("game_over_fade");
     let fade = ctx.animate_bool_with_time(fade_id, true, FADE_SECS);
-    egui::Area::new(Id::new("game_over"))
-        .order(Order::Foreground)
-        .fixed_pos(screen.min)
-        .show(ctx, |ui| {
+    egui::Area::new(Id::new("game_over")).order(Order::Foreground).fixed_pos(screen.min).show(
+        ctx,
+        |ui| {
             let response = ui.allocate_rect(screen, Sense::click());
             let painter = ui.painter();
             painter.rect_filled(screen, 0.0, c32(GAME_OVER_BG_COLOR).gamma_multiply(fade));
@@ -62,6 +61,7 @@ pub fn game_over_ui(
                 next_state.set(AppState::DuringWeek);
                 ui.ctx().animate_bool_with_time(fade_id, false, 0.0);
             }
-        });
+        },
+    );
     Ok(())
 }

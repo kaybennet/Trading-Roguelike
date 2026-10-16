@@ -4,8 +4,7 @@ pub struct InputPlugin;
 
 impl Plugin for InputPlugin {
     fn build(&self, app: &mut App) {
-        app.add_message::<Toggle>()
-            .add_systems(PreUpdate, keyboard_input);
+        app.add_message::<Toggle>().add_systems(PreUpdate, keyboard_input);
     }
 }
 

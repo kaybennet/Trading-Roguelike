@@ -13,10 +13,7 @@ impl Plugin for VsyncPlugin {
 
 /// Whether the present mode waits for the display refresh.
 pub fn vsync_enabled(mode: PresentMode) -> bool {
-    matches!(
-        mode,
-        PresentMode::AutoVsync | PresentMode::Fifo | PresentMode::FifoRelaxed
-    )
+    matches!(mode, PresentMode::AutoVsync | PresentMode::Fifo | PresentMode::FifoRelaxed)
 }
 
 fn toggle_vsync(

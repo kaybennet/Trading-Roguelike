@@ -3,8 +3,11 @@ use bevy::prelude::*;
 use bevy_egui::egui::{self, Align2, Color32, FontId, Id, LayerId, Order};
 
 use crate::colors::STOCK_UP_COLOR;
-use crate::consts::{FLOAT_FONT_SIZE, FLOAT_RISE, FLOAT_SECS, JOKER_COUNT, TRIGGER_FLASH_SECS};
-use crate::general::{Boost, GameEvent, Triggered};
+use crate::consts::{
+    FLOAT_FONT_SIZE, FLOAT_GROWTH, FLOAT_MAX_SCALE, FLOAT_RISE, FLOAT_SECS, JOKER_COUNT,
+    TRIGGER_FLASH_SECS,
+};
+use crate::general::{Boost, EndOfWeekEvent, GameEvent};
 
 use super::style::c32;
 
@@ -21,6 +24,8 @@ struct Float {
     age: f32,
     /// Cash total and how many payouts it sums, so repeats can be merged into it.
     cash: Option<(f64, f64)>,
+    /// How many boosts were merged into this float; it grows and turns bolder with each.
+    boosts: u32,
 }
 
 /// How long the flash of each portfolio and joker slot has left.
@@ -41,7 +46,8 @@ impl Flashes {
             let alpha = (1.0 - t * t).clamp(0.0, 1.0);
             let pos = egui::pos2(rect.center().x, rect.top() - rise);
             let text = &float.text;
-            let font = FontId::proportional(FLOAT_FONT_SIZE);
+            let scale = (1.0 + FLOAT_GROWTH * float.boosts as f32).min(FLOAT_MAX_SCALE);
+            let font = FontId::proportional(FLOAT_FONT_SIZE * scale);
             let shadow = Color32::from_black_alpha((alpha * 200.0) as u8);
             painter.text(
                 pos + egui::vec2(1.0, 1.0),
@@ -51,7 +57,18 @@ impl Flashes {
                 shadow,
             );
             let color = c32(STOCK_UP_COLOR).gamma_multiply(alpha);
-            painter.text(pos, Align2::CENTER_BOTTOM, text, font, color);
+            // egui has no bold weight, so extra strokes next to the text fake it.
+            let strokes = float.boosts.min(2) as f32;
+            for i in 0..=float.boosts.min(2) {
+                let dx = (i as f32 - strokes / 2.0) * 0.8;
+                painter.text(
+                    pos + egui::vec2(dx, 0.0),
+                    Align2::CENTER_BOTTOM,
+                    text,
+                    font.clone(),
+                    color,
+                );
+            }
         }
     }
 
@@ -64,16 +81,12 @@ impl Flashes {
 
     /// Brightness of a portfolio slot's flash, from 0 (off) to 1 (just triggered).
     pub fn holding(&self, slot: usize) -> f32 {
-        self.holdings
-            .get(slot)
-            .map_or(0.0, |left| left / TRIGGER_FLASH_SECS)
+        self.holdings.get(slot).map_or(0.0, |left| left / TRIGGER_FLASH_SECS)
     }
 
     /// Brightness of a joker slot's flash, from 0 (off) to 1 (just triggered).
     pub fn joker(&self, slot: usize) -> f32 {
-        self.jokers
-            .get(slot)
-            .map_or(0.0, |left| left / TRIGGER_FLASH_SECS)
+        self.jokers.get(slot).map_or(0.0, |left| left / TRIGGER_FLASH_SECS)
     }
 }
 
@@ -98,29 +111,24 @@ pub fn update_flashes(
         _ => None,
     });
     let triggered = events.iter().filter_map(|e| match e {
-        GameEvent::Triggered(step) => Some(step),
+        GameEvent::EndOfTurn(step) => Some(step),
         _ => None,
     });
     for gain in gains {
         let anchor = match gain.source {
-            Triggered::Dividend(slot) | Triggered::DividendBoost { slot, .. } => {
+            EndOfWeekEvent::Dividend(slot) | EndOfWeekEvent::DividendBoost { slot, .. } => {
                 Anchor::Holding(slot)
             }
-            Triggered::Joker(slot) => Anchor::Joker(slot),
+            EndOfWeekEvent::Joker(slot) => Anchor::Joker(slot),
         };
         // A boost adds to the float of the dividend it boosts.
         let boost = match gain.source {
-            Triggered::DividendBoost { boost, .. } => Some(boost),
+            EndOfWeekEvent::DividendBoost { boost, .. } => Some(boost),
             _ => None,
         };
         let merge = boost
             .is_some()
-            .then(|| {
-                flashes
-                    .floats
-                    .iter_mut()
-                    .rfind(|f| f.anchor == anchor && f.cash.is_some())
-            })
+            .then(|| flashes.floats.iter_mut().rfind(|f| f.anchor == anchor && f.cash.is_some()))
             .flatten();
         if let Some(float) = merge
             && let Some((total, times)) = &mut float.cash
@@ -134,7 +142,9 @@ pub fn update_flashes(
             } else {
                 format!("+€{total:.2}")
             };
-            float.age = 0.0;
+            float.boosts += 1;
+            // Pops back up so the bigger number stays readable, without dropping to the start.
+            float.age = float.age.min(FLOAT_SECS * 0.5);
             continue;
         }
         flashes.floats.push(Float {
@@ -142,6 +152,7 @@ pub fn update_flashes(
             text: format!("+€{:.2}", gain.amount),
             age: 0.0,
             cash: Some((gain.amount, 1.0)),
+            boosts: 0,
         });
     }
     for gain in share_gains {
@@ -150,6 +161,7 @@ pub fn update_flashes(
             text: format!("+{} share", gain.amount),
             age: 0.0,
             cash: None,
+            boosts: 0,
         });
         flashes.flash_holding(gain.slot);
     }
@@ -158,17 +170,17 @@ pub fn update_flashes(
     }
     for step in triggered {
         match *step {
-            Triggered::Dividend(slot) => {
+            EndOfWeekEvent::Dividend(slot) => {
                 flashes.flash_holding(slot);
             }
-            Triggered::DividendBoost { slot, joker, .. } => {
+            EndOfWeekEvent::DividendBoost { slot, joker, .. } => {
                 flashes.flash_holding(slot);
                 // The joker of this step lights up.
                 if let Some(left) = flashes.jokers.get_mut(joker) {
                     *left = TRIGGER_FLASH_SECS;
                 }
             }
-            Triggered::Joker(slot) => {
+            EndOfWeekEvent::Joker(slot) => {
                 if let Some(left) = flashes.jokers.get_mut(slot) {
                     *left = TRIGGER_FLASH_SECS;
                 }

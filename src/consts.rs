@@ -9,6 +9,8 @@ pub const SEED: u64 = 42;
 pub const DEBUG_UPDATE_INTERVAL: Duration = Duration::from_millis(50);
 pub const DEBUG_FONT_SIZE: f32 = 16.0;
 pub const DEBUG_MARGIN: f32 = 4.0;
+/// The F3 overlay never gets narrower than this, so it does not jitter as digits change.
+pub const DEBUG_MIN_WIDTH: f32 = 180.0;
 
 // Game screen
 pub const SCORE_PANEL_WIDTH_PCT: f32 = 100.0 / 6.0;
@@ -28,12 +30,9 @@ pub const HOVER_LIFT: f32 = 3.0;
 pub const START_GAME_STATE: GameState = GameState {
     monthly_debt_euro: 10.,
     invested_euro: 0.,
-    date: Date {
-        week: 0,
-        month: 0,
-        year: 0,
-    },
+    date: Date { week: 0, month: 0, year: 0 },
     interest: 0.02,
+    commission: 0.01,
     modifiers: Vec::new(),
 };
 /// Cash at the start of a run.
@@ -64,7 +63,6 @@ pub const TICKER_TOP_PCT: f32 = 28.0;
 pub const TICKER_HEIGHT_PCT: f32 = 32.0;
 pub const TICKER_FONT_SIZE: f32 = 36.0;
 pub const TICKER_CARD_WIDTH_PCT: f32 = 28.0;
-pub const MIN_SHARES: f64 = 0.001;
 
 pub const GAME_OVER_FONT_SIZE: f32 = 40.0;
 
@@ -85,6 +83,9 @@ pub const TRIGGER_FLASH_SECS: f32 = 0.2;
 pub const FLOAT_SECS: f32 = 1.0;
 pub const FLOAT_RISE: f32 = 40.0;
 pub const FLOAT_FONT_SIZE: f32 = 22.0;
+/// How much larger a floating amount gets for each boost merged into it, up to the max.
+pub const FLOAT_GROWTH: f32 = 0.25;
+pub const FLOAT_MAX_SCALE: f32 = 2.0;
 /// How many cards the shop offers after each paid debt.
 pub const SHOP_OFFER_SIZE: usize = 4;
 

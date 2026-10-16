@@ -8,8 +8,7 @@ pub struct GameStatePlugin;
 
 impl Plugin for GameStatePlugin {
     fn build(&self, app: &mut App) {
-        app.init_resource::<GameState>()
-            .add_systems(OnExit(AppState::GameOver), reset_game_state);
+        app.init_resource::<GameState>().add_systems(OnExit(AppState::GameOver), reset_game_state);
     }
 }
 
@@ -19,6 +18,8 @@ pub struct GameState {
     pub invested_euro: f64,
     pub date: Date,
     pub interest: f64,
+    /// Fee on every share bought, as a fraction of its price.
+    pub commission: f64,
     pub modifiers: Vec<ModifierId>,
 }
 

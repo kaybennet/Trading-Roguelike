@@ -1,9 +1,9 @@
-mod id;
+mod joker;
 mod listeners;
 
 use bevy::prelude::*;
 
-pub use id::Joker;
+pub use joker::{Joker, JokerKind};
 
 pub struct JokersPlugin;
 

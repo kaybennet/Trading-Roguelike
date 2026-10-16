@@ -3,7 +3,7 @@ use strum::IntoEnumIterator;
 
 use crate::consts::{JOKER_COUNT, SHOP_OFFER_SIZE};
 use crate::general::{AppState, GameState, GlobalRng, Portfolio};
-use crate::jokers::Joker;
+use crate::jokers::{Joker, JokerKind};
 use crate::modifiers::ModifierId;
 use crate::rarity::Rarity;
 
@@ -11,8 +11,7 @@ pub struct ShopPlugin;
 
 impl Plugin for ShopPlugin {
     fn build(&self, app: &mut App) {
-        app.init_resource::<ShopOffer>()
-            .add_systems(OnEnter(AppState::JokerShop), roll_offer);
+        app.init_resource::<ShopOffer>().add_systems(OnEnter(AppState::JokerShop), roll_offer);
     }
 }
 
@@ -78,7 +77,7 @@ impl ShopOffer {
         portfolio.cash -= card.price();
         match card {
             Card::Joker(joker) => {
-                portfolio.jokers.push(joker);
+                portfolio.add_joker(joker);
                 joker.on_buy(portfolio);
             }
             Card::Modifier(modifier) => {
@@ -91,8 +90,8 @@ impl ShopOffer {
 }
 
 fn roll_offer(mut offer: ResMut<ShopOffer>, mut rng: ResMut<GlobalRng>) {
-    let pool = Joker::iter()
-        .map(Card::Joker)
+    let pool = JokerKind::iter()
+        .map(|kind| Card::Joker(Joker::new(kind)))
         .chain(ModifierId::iter().map(Card::Modifier))
         .collect();
     offer.0 = rng.draw_weighted(pool, SHOP_OFFER_SIZE, |card| card.rarity().draw_weight());

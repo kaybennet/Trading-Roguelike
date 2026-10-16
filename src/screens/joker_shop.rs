@@ -31,14 +31,9 @@ fn shop_card(
     hint: &str,
     buyable: bool,
 ) -> bool {
-    let response = ui.interact(
-        base,
-        Id::new(("shop_card", offered.name())),
-        egui::Sense::click(),
-    );
+    let response = ui.interact(base, Id::new(("shop_card", offered.name())), egui::Sense::click());
     let hover =
-        ui.ctx()
-            .animate_bool_with_time(response.id, buyable && response.hovered(), HOVER_SECS);
+        ui.ctx().animate_bool_with_time(response.id, buyable && response.hovered(), HOVER_SECS);
     if buyable && response.hovered() {
         ui.ctx().set_cursor_icon(egui::CursorIcon::PointingHand);
     }
@@ -53,14 +48,7 @@ fn shop_card(
     let x = rect.center().x;
     let wrap = rect.width() - PANEL_GAP * 2.0;
     let mut y = rect.top() + PANEL_GAP;
-    y = centered_lines(
-        painter,
-        x,
-        y,
-        &[tag],
-        TAG_FONT_SIZE,
-        c32(rarity_color(rarity)),
-    );
+    y = centered_lines(painter, x, y, &[tag], TAG_FONT_SIZE, c32(rarity_color(rarity)));
     y = centered_lines(
         painter,
         x,
@@ -129,10 +117,9 @@ pub fn joker_shop_ui(
     let mut bought = None;
     let mut done = false;
 
-    egui::Area::new(Id::new("joker_shop"))
-        .order(Order::Foreground)
-        .fixed_pos(screen.min)
-        .show(ctx, |ui| {
+    egui::Area::new(Id::new("joker_shop")).order(Order::Foreground).fixed_pos(screen.min).show(
+        ctx,
+        |ui| {
             let painter = ui.painter().clone();
             // Swallow clicks so the game underneath can't be played.
             ui.allocate_rect(screen, egui::Sense::click());
@@ -174,16 +161,14 @@ pub fn joker_shop_ui(
                 }
             }
             let rect = Rect::from_min_size(
-                egui::pos2(
-                    w / 2.0 - CONTINUE_SIZE.x / 2.0,
-                    grid_top + grid_h + PANEL_GAP * 2.0,
-                ),
+                egui::pos2(w / 2.0 - CONTINUE_SIZE.x / 2.0, grid_top + grid_h + PANEL_GAP * 2.0),
                 CONTINUE_SIZE,
             );
             ui.scope_builder(egui::UiBuilder::new().max_rect(rect), |ui| {
                 done = button(ui, "Continue", SCORE_FONT_SIZE, CONTINUE_SIZE).clicked();
             });
-        });
+        },
+    );
 
     if let Some(index) = bought {
         offer.buy(index, &mut portfolio, &mut state);

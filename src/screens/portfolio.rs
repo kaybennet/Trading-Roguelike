@@ -46,12 +46,8 @@ pub fn portfolio_ui(
     let bg = backdrop(ctx);
 
     // Backing panel for the whole row, the squares sit inside it.
-    let panel = rect_at(
-        left,
-        h - PANEL_GAP * 3.0 - side,
-        w - PANEL_GAP - left,
-        side + PANEL_GAP * 2.0,
-    );
+    let panel =
+        rect_at(left, h - PANEL_GAP * 3.0 - side, w - PANEL_GAP - left, side + PANEL_GAP * 2.0);
     card(&bg, panel, SCORE_BOX_COLOR, 0.0, 0.0);
 
     for slot in 0..portfolio.max_size {
@@ -169,34 +165,19 @@ pub fn portfolio_ui(
         if progress > 0.0 && progress < 1.0 {
             let radius = CornerRadius::same(2);
             bg.rect_filled(track, radius, c32(PANEL_COLOR.darker(0.05)));
-            let filled = rect_at(
-                track.left(),
-                track.top(),
-                track.width() * progress.min(1.0),
-                BAR_HEIGHT,
-            );
+            let filled =
+                rect_at(track.left(), track.top(), track.width() * progress.min(1.0), BAR_HEIGHT);
             bg.rect_filled(filled, radius, c32(STOCK_DOWN_COLOR));
         }
 
         // Recent price trend in the space between the numbers and the hint.
-        let recent: Vec<f32> = stock
-            .history
-            .iter()
-            .rev()
-            .take(SPARKLINE_WEEKS)
-            .rev()
-            .copied()
-            .collect();
-        let spark = rect_at(
-            inner_left,
-            y + 4.0,
-            track.width(),
-            hint_top - 4.0 - (y + 4.0),
-        );
+        let recent: Vec<f32> =
+            stock.history.iter().rev().take(SPARKLINE_WEEKS).rev().copied().collect();
+        let spark = rect_at(inner_left, y + 4.0, track.width(), hint_top - 4.0 - (y + 4.0));
         sparkline(&bg, spark, &recent, name_color);
 
         for _ in 0..sells {
-            if portfolio.sell_one(stock) {
+            if portfolio.sell(stock) {
                 events.write(GameEvent::Sold(Sold(stock.ticker)));
             }
         }

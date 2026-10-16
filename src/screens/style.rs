@@ -98,14 +98,8 @@ pub fn card(painter: &Painter, rect: Rect, color: Color, hover: f32, flash: f32)
     let radius = CornerRadius::same(CORNER_RADIUS);
     let rect = rect.translate(egui::vec2(0.0, -HOVER_LIFT * hover));
     let shadow = Color32::from_black_alpha((70.0 + 50.0 * hover) as u8);
-    painter.rect_filled(
-        rect.translate(egui::vec2(0.0, 3.0 + 3.0 * hover)),
-        radius,
-        shadow,
-    );
-    let fill = color
-        .mix(&Color::WHITE, 0.08 * hover)
-        .mix(&TRIGGER_FLASH_COLOR, flash);
+    painter.rect_filled(rect.translate(egui::vec2(0.0, 3.0 + 3.0 * hover)), radius, shadow);
+    let fill = color.mix(&Color::WHITE, 0.08 * hover).mix(&TRIGGER_FLASH_COLOR, flash);
     painter.rect_filled(rect, radius, c32(fill));
     let border = c32(BORDER_COLOR.mix(&ACCENT_COLOR, hover));
     painter.rect_stroke(rect, radius, Stroke::new(1.0, border), StrokeKind::Inside);
@@ -149,11 +143,7 @@ pub fn wrapped_text(
     job.halign = Align::Center;
     let galley = painter.layout_job(job);
     let bottom = top + galley.size().y;
-    painter.galley(
-        Pos2::new(center_x - galley.rect.center().x, top),
-        galley,
-        color,
-    );
+    painter.galley(Pos2::new(center_x - galley.rect.center().x, top), galley, color);
     bottom
 }
 
@@ -195,9 +185,8 @@ pub fn hold_repeat(ui: &egui::Ui, id: Id, active: bool) -> (u32, f32) {
         return (0, 0.0);
     }
     let now = ui.input(|i| i.time);
-    let (start, mut next) = ui
-        .data(|d| d.get_temp::<(f64, f64)>(id))
-        .unwrap_or((now, now + HOLD_DELAY_SECS));
+    let (start, mut next) =
+        ui.data(|d| d.get_temp::<(f64, f64)>(id)).unwrap_or((now, now + HOLD_DELAY_SECS));
     let mut fires = 0;
     while now >= next && fires < 100 {
         fires += 1;
@@ -215,12 +204,20 @@ pub fn place(
     rect: Rect,
     add: impl FnOnce(&mut egui::Ui),
 ) {
-    egui::Area::new(Id::new(id))
-        .order(Order::Middle)
-        .fixed_pos(rect.min)
-        .show(ctx, |ui| {
-            ui.scope_builder(egui::UiBuilder::new().max_rect(rect), add);
-        });
+    place_on(ctx, Order::Middle, id, rect, add);
+}
+
+/// Like `place`, on a chosen layer order.
+pub fn place_on(
+    ctx: &egui::Context,
+    order: Order,
+    id: impl std::hash::Hash + std::fmt::Debug,
+    rect: Rect,
+    add: impl FnOnce(&mut egui::Ui),
+) {
+    egui::Area::new(Id::new(id)).order(order).fixed_pos(rect.min).show(ctx, |ui| {
+        ui.scope_builder(egui::UiBuilder::new().max_rect(rect), add);
+    });
 }
 
 /// A rounded button that fades between the game's hover and press colours.
@@ -229,8 +226,7 @@ pub fn button(ui: &mut egui::Ui, label: &str, font_size: f32, size: egui::Vec2) 
     let (rect, response) = ui.allocate_exact_size(size, egui::Sense::click());
     let enabled = ui.is_enabled();
     let hover =
-        ui.ctx()
-            .animate_bool_with_time(response.id, enabled && response.hovered(), HOVER_SECS);
+        ui.ctx().animate_bool_with_time(response.id, enabled && response.hovered(), HOVER_SECS);
     let fill = if !enabled {
         Color::srgb(0.18, 0.2, 0.26)
     } else if response.is_pointer_button_down_on() {
@@ -239,8 +235,7 @@ pub fn button(ui: &mut egui::Ui, label: &str, font_size: f32, size: egui::Vec2) 
         BUTTON_COLOR.mix(&BUTTON_HOVER_COLOR, hover)
     };
     let text_color = if enabled { Color32::WHITE } else { muted() };
-    ui.painter()
-        .rect_filled(rect, CornerRadius::same(CORNER_RADIUS - 2), c32(fill));
+    ui.painter().rect_filled(rect, CornerRadius::same(CORNER_RADIUS - 2), c32(fill));
     ui.painter().text(
         rect.center(),
         Align2::CENTER_CENTER,

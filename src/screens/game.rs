@@ -13,7 +13,7 @@ use crate::consts::{
     JOKER_PANEL_WIDTH_PCT, PANEL_GAP, SCORE_FONT_SIZE, SCORE_PANEL_WIDTH_PCT, TOP_BAR_FONT_SIZE,
     TOP_BAR_HEIGHT_PCT,
 };
-use crate::general::{AppState, Date, GameEvent, GameState, Portfolio};
+use crate::general::{AppState, Date, GameState, Portfolio};
 
 const LABEL_FONT_SIZE: f32 = 14.0;
 const CONTINUE_HEIGHT: f32 = 48.0;
@@ -25,7 +25,6 @@ pub fn game_ui(
     mut contexts: EguiContexts,
     state: Res<GameState>,
     portfolio: Res<Portfolio>,
-    mut events: MessageWriter<GameEvent>,
     app_state: Res<State<AppState>>,
     mut next_state: ResMut<NextState<AppState>>,
 ) -> Result {
@@ -37,21 +36,14 @@ pub fn game_ui(
     draw_background(&bg, screen);
 
     // Left box: stats from the top, Continue at the bottom.
-    let side = rect_at(
-        PANEL_GAP,
-        PANEL_GAP,
-        left_w - PANEL_GAP,
-        h - 2.0 * PANEL_GAP,
-    );
+    let side = rect_at(PANEL_GAP, PANEL_GAP, left_w - PANEL_GAP, h - 2.0 * PANEL_GAP);
     card(&bg, side, SCORE_BOX_COLOR, 0.0, 0.0);
     let stats = [
-        (
-            "WEEK",
-            format!("{}/{}", state.date.week + 1, Date::WEEKS_PER_MONTH),
-        ),
+        ("WEEK", format!("{}/{}", state.date.week + 1, Date::WEEKS_PER_MONTH)),
         ("MONTH", state.date.month_name().to_string()),
         ("YEAR", (state.date.year + 1).to_string()),
         ("INTEREST", format!("{:.0}%", state.interest * 100.0)),
+        ("COMMISSION", format!("{:.0}%", state.commission * 100.0)),
     ];
     let mut y = side.top() + PANEL_GAP;
     for (label, value) in stats {
@@ -82,28 +74,12 @@ pub fn game_ui(
     // The cash counts up to its new value instead of jumping.
     let cash = portfolio.cash;
     let animated = ctx.animate_value_with_time(Id::new("cash_shown"), cash as f32, CASH_COUNT_SECS);
-    let shown = if animated == cash as f32 {
-        cash
-    } else {
-        animated as f64
-    };
+    let shown = if animated == cash as f32 { cash } else { animated as f64 };
     let values = [
         ("CASH", format!("€{shown:.2}"), c32(ACCENT_COLOR)),
-        (
-            "INVESTED",
-            format!("€{:.2}", state.invested_euro),
-            Color32::WHITE,
-        ),
-        (
-            "WORTH",
-            format!("€{:.2}", cash + state.invested_euro),
-            Color32::WHITE,
-        ),
-        (
-            "MONTHLY DEBT",
-            format!("€{:.2}", state.monthly_debt_euro),
-            Color32::WHITE,
-        ),
+        ("INVESTED", format!("€{:.2}", state.invested_euro), Color32::WHITE),
+        ("WORTH", format!("€{:.2}", cash + state.invested_euro), Color32::WHITE),
+        ("MONTHLY DEBT", format!("€{:.2}", state.monthly_debt_euro), Color32::WHITE),
     ];
     let block_h = lines_height(1, LABEL_FONT_SIZE) + lines_height(1, TOP_BAR_FONT_SIZE);
     let top = bar.center().y - block_h / 2.0;
@@ -145,7 +121,6 @@ pub fn game_ui(
         // Locked while the end-of-week triggers play out.
         ui.add_enabled_ui(*app_state.get() == AppState::DuringWeek, |ui| {
             if button(ui, "Continue", TOP_BAR_FONT_SIZE, continue_size).clicked() {
-                events.write(GameEvent::TurnEnded);
                 next_state.set(AppState::EndOfWeek);
             }
         });

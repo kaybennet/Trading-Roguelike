@@ -3,7 +3,7 @@ use bevy::prelude::*;
 use rand::RngExt;
 
 use super::{AppState, GameState, GlobalRng};
-use crate::consts::{MIN_SHARES, START_CASH, START_PORTFOLIO_SIZE};
+use crate::consts::{START_CASH, START_PORTFOLIO_SIZE};
 use crate::jokers::Joker;
 use crate::stocks::{Market, Stock, Ticker};
 
@@ -25,10 +25,25 @@ pub struct Holding {
 }
 
 impl Holding {
-    pub fn add_free_share(&mut self) {
-        let total_cost = self.avg_cost * self.shares;
+    pub fn new(ticker: Ticker) -> Self {
+        Self { ticker, shares: 0.0, avg_cost: 0.0 }
+    }
+
+    pub fn increment(&mut self, price: f64) {
+        let total_cost = self.avg_cost * self.shares + price;
         self.shares += 1.0;
         self.avg_cost = total_cost / self.shares;
+    }
+
+    pub fn increment_for_free(&mut self) {
+        self.increment(0.0);
+    }
+
+    pub fn decrement(&mut self) {
+        self.shares -= 1.0;
+    }
+    pub fn div_claim(&self, market: &Market) -> f64 {
+        market.get(self.ticker).div_per_share() as f64 * self.shares as f64
     }
 }
 
@@ -52,27 +67,45 @@ impl Default for Portfolio {
 }
 
 impl Portfolio {
-    pub fn buy(&mut self, stock: &Stock) -> bool {
-        let price = stock.price() as f64;
+    pub fn slot_of(&self, ticker: Ticker) -> Option<usize> {
+        self.slots.iter().position(|s| s.as_ref().is_some_and(|h| h.ticker == ticker))
+    }
+
+    pub fn holdings(&self) -> Vec<Holding> {
+        self.slots.iter().flatten().cloned().collect()
+    }
+
+    /// What one share costs including the commission.
+    pub fn buy_cost(stock: &Stock, commission: f64) -> f64 {
+        stock.price() as f64 * (1.0 + commission)
+    }
+
+    pub fn buy(&mut self, stock: &Stock, commission: f64) -> bool {
+        let price = Self::buy_cost(stock, commission);
         if self.cash < price {
             return false;
         }
-        let slots = &mut self.slots;
-        let existing = slots
-            .iter()
-            .position(|s| s.as_ref().is_some_and(|h| h.ticker == stock.ticker));
-        let Some(index) = existing.or_else(|| slots.iter().position(Option::is_none)) else {
+        let free_slot = || self.slots.iter().position(Option::is_none);
+        let Some(slot) = self.slot_of(stock.ticker).or_else(free_slot) else {
             return false;
         };
-        let holding = slots[index].get_or_insert(Holding {
-            ticker: stock.ticker,
-            shares: 0.0,
-            avg_cost: 0.0,
-        });
-        let total_cost = holding.avg_cost * holding.shares + price;
-        holding.shares += 1.0;
-        holding.avg_cost = total_cost / holding.shares;
+        self.slots[slot].get_or_insert_with(|| Holding::new(stock.ticker)).increment(price);
         self.cash -= price;
+        true
+    }
+
+    pub fn sell(&mut self, stock: &Stock) -> bool {
+        let Some(slot) = self.slot_of(stock.ticker) else {
+            return false;
+        };
+        let Some(holding) = &mut self.slots[slot] else {
+            return false;
+        };
+        holding.decrement();
+        if holding.shares <= 0.0 {
+            self.slots[slot] = None;
+        }
+        self.cash += stock.price() as f64;
         true
     }
 
@@ -82,36 +115,25 @@ impl Portfolio {
         }
         let joker = self.jokers.remove(from);
         self.jokers.insert(to.min(self.jokers.len()), joker);
+        self.renumber_jokers();
     }
 
-    pub fn sell_one(&mut self, stock: &Stock) -> bool {
-        let shares = self
-            .slots
-            .iter()
-            .flatten()
-            .find(|h| h.ticker == stock.ticker)
-            .map_or(0.0, |h| h.shares);
-        shares > 0.0 && self.sell(stock, (1.0 / shares).min(1.0))
+    pub fn add_joker(&mut self, joker: Joker) {
+        self.jokers.push(joker);
+        self.renumber_jokers();
     }
 
-    pub fn sell(&mut self, stock: &Stock, fraction: f64) -> bool {
-        let slots = &mut self.slots;
-        let Some(slot) = slots
-            .iter()
-            .position(|s| s.as_ref().is_some_and(|h| h.ticker == stock.ticker))
-        else {
-            return false;
-        };
-        let Some(holding) = &mut slots[slot] else {
-            return false;
-        };
-        let sold = holding.shares * fraction.clamp(0.0, 1.0);
-        holding.shares -= sold;
-        self.cash += sold * stock.price() as f64;
-        if holding.shares < MIN_SHARES {
-            slots[slot] = None;
+    pub fn remove_joker(&mut self, index: usize) -> Joker {
+        let mut joker = self.jokers.remove(index);
+        self.renumber_jokers();
+        joker.slot = Joker::NOT_OWNED;
+        joker
+    }
+
+    fn renumber_jokers(&mut self) {
+        for (slot, joker) in self.jokers.iter_mut().enumerate() {
+            joker.slot = slot as i32;
         }
-        true
     }
 
     pub fn rnd_holding(&mut self, rng: &mut GlobalRng) -> Option<&mut Holding> {

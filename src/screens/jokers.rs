@@ -8,13 +8,13 @@ use bevy_egui::{
 };
 
 use super::flash::{Anchor, Flashes};
-use super::style::{backdrop, c32, card, hover_amount, muted, place, rarity_outline, rect_at};
+use super::style::{backdrop, c32, card, hover_amount, muted, place_on, rarity_outline, rect_at};
 use crate::colors::{ACCENT_COLOR, BORDER_COLOR, PANEL_COLOR, SCORE_BOX_COLOR};
 use crate::consts::{
     CORNER_RADIUS, JOKER_COUNT, JOKER_FONT_SIZE, JOKER_HEIGHT_PCT, JOKER_PANEL_WIDTH_PCT,
     JOKER_SELL_FRACTION, PANEL_GAP, TICKER_HEIGHT_PCT, TICKER_TOP_PCT,
 };
-use crate::general::Portfolio;
+use crate::general::{AppState, Portfolio};
 use crate::jokers::Joker;
 
 /// Draws one joker's name and its position number inside `slot`.
@@ -41,6 +41,7 @@ pub fn jokers_ui(
     mut contexts: EguiContexts,
     mut portfolio: ResMut<Portfolio>,
     flashes: Res<Flashes>,
+    app_state: Res<State<AppState>>,
 ) -> Result {
     let ctx = contexts.ctx_mut()?;
     let screen = ctx.content_rect();
@@ -52,14 +53,18 @@ pub fn jokers_ui(
     let total = count as f32 * slot_h + (count - 1) as f32 * PANEL_GAP;
     let top = h * (TICKER_TOP_PCT + TICKER_HEIGHT_PCT / 2.0) / 100.0 - total / 2.0;
     let slot_rect = |n: usize| {
-        rect_at(
-            w - column_w + PANEL_GAP,
-            top + n as f32 * (slot_h + PANEL_GAP),
-            slot_w,
-            slot_h,
-        )
+        rect_at(w - column_w + PANEL_GAP, top + n as f32 * (slot_h + PANEL_GAP), slot_w, slot_h)
     };
-    let bg = backdrop(ctx);
+    // In the shop the column is lifted above the dimmed overlay so jokers stay usable.
+    // Otherwise it draws on the shared backdrop layer: a layer of its own would sit
+    // under the background gradient.
+    let in_shop = *app_state.get() == AppState::JokerShop;
+    let order = if in_shop { Order::Tooltip } else { Order::Middle };
+    let bg = if in_shop {
+        ctx.layer_painter(LayerId::new(Order::Tooltip, Id::new("joker_column")))
+    } else {
+        backdrop(ctx)
+    };
 
     // The joker being dragged (its slot index) is kept in egui's memory.
     let drag_id = Id::new("joker_drag");
@@ -128,7 +133,7 @@ pub fn jokers_ui(
             );
         }
         if let Some(joker) = joker {
-            place(ctx, ("joker_slot", n), rect, |ui| {
+            place_on(ctx, order, ("joker_slot", n), rect, |ui| {
                 let response = ui.allocate_rect(rect, Sense::click_and_drag());
                 if response.secondary_clicked() {
                     sell = Some(n);
@@ -137,19 +142,17 @@ pub fn jokers_ui(
                     started = Some(n);
                 }
                 if dragging.is_none() {
-                    response
-                        .on_hover_cursor(CursorIcon::Grab)
-                        .on_hover_ui(|ui| {
-                            ui.strong(joker.name());
-                            ui.label(joker.description());
-                            ui.label(
-                                egui::RichText::new(format!(
-                                    "Drag to reorder, right-click to sell for €{:.2}",
-                                    joker.price() * JOKER_SELL_FRACTION
-                                ))
-                                .color(muted()),
-                            );
-                        });
+                    response.on_hover_cursor(CursorIcon::Grab).on_hover_ui(|ui| {
+                        ui.strong(joker.name());
+                        ui.label(joker.description());
+                        ui.label(
+                            egui::RichText::new(format!(
+                                "Drag to reorder, right-click to sell for €{:.2}",
+                                joker.price() * JOKER_SELL_FRACTION
+                            ))
+                            .color(muted()),
+                        );
+                    });
                 }
             });
         }
@@ -157,7 +160,7 @@ pub fn jokers_ui(
     if let Some(n) = sell
         && let Some(joker) = portfolio.jokers.get(n).copied()
     {
-        portfolio.jokers.remove(n);
+        portfolio.remove_joker(n);
         portfolio.cash += joker.price() * JOKER_SELL_FRACTION;
     }
     if let Some(n) = started {

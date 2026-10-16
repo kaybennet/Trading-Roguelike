@@ -53,9 +53,7 @@ fn plot(painter: &Painter, area: Rect, values: &[f32], (lo, hi): (f32, f32), col
 }
 
 fn range(values: &[f32]) -> (f32, f32) {
-    values
-        .iter()
-        .fold((f32::MAX, f32::MIN), |(lo, hi), &p| (lo.min(p), hi.max(p)))
+    values.iter().fold((f32::MAX, f32::MIN), |(lo, hi), &p| (lo.min(p), hi.max(p)))
 }
 
 /// A small chart of `values` filling `area`, no axes.
@@ -64,11 +62,7 @@ pub fn sparkline(painter: &Painter, area: Rect, values: &[f32], color: Color32) 
 }
 
 fn price_label(p: f32, span: f32) -> String {
-    if span < 10.0 {
-        format!("€{p:.2}")
-    } else {
-        format!("€{p:.0}")
-    }
+    if span < 10.0 { format!("€{p:.2}") } else { format!("€{p:.0}") }
 }
 
 /// Draws the full price history of `stock` as a card filling `rect`, with
@@ -81,9 +75,7 @@ pub fn draw_chart(painter: &Painter, rect: Rect, stock: &Stock, avg_cost: Option
         return;
     }
     let panel = card(painter, rect, SCORE_BOX_COLOR, hover, 0.0);
-    let k = (rect.width() / DESIGN_SIZE.x)
-        .min(rect.height() / DESIGN_SIZE.y)
-        .clamp(0.55, 1.8);
+    let k = (rect.width() / DESIGN_SIZE.x).min(rect.height() / DESIGN_SIZE.y).clamp(0.55, 1.8);
     let font = |size: f32| FontId::proportional((size * k).max(MIN_FONT_SIZE));
     let pad = PANEL_GAP * k.clamp(0.7, 1.3);
 
@@ -126,10 +118,7 @@ pub fn draw_chart(painter: &Painter, rect: Rect, stock: &Stock, avg_cost: Option
     );
 
     let area = Rect::from_min_max(
-        Pos2::new(
-            panel.left() + AXIS_WIDTH * k,
-            panel.top() + HEADER_HEIGHT * k,
-        ),
+        Pos2::new(panel.left() + AXIS_WIDTH * k, panel.top() + HEADER_HEIGHT * k),
         Pos2::new(panel.right() - pad, panel.bottom() - AXIS_HEIGHT * k),
     );
     // Padded price range, also covering the buy-in price.
@@ -163,16 +152,8 @@ pub fn draw_chart(painter: &Painter, rect: Rect, stock: &Stock, avg_cost: Option
         painter.vline(x, area.y_range(), grid);
         painter.text(
             Pos2::new(x, area.bottom() + 6.0 * k),
-            if years_back == 0 {
-                Align2::RIGHT_TOP
-            } else {
-                Align2::CENTER_TOP
-            },
-            if years_back == 0 {
-                "now".to_string()
-            } else {
-                format!("-{years_back}y")
-            },
+            if years_back == 0 { Align2::RIGHT_TOP } else { Align2::CENTER_TOP },
+            if years_back == 0 { "now".to_string() } else { format!("-{years_back}y") },
             font(LABEL_SIZE),
             muted(),
         );

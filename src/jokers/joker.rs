@@ -1,10 +1,12 @@
+use std::ops::Deref;
+
 use strum::{EnumIter, IntoStaticStr};
 
 use crate::general::{GameState, GlobalRng, Portfolio};
 use crate::rarity::Rarity;
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug, EnumIter, IntoStaticStr)]
-pub enum Joker {
+pub enum JokerKind {
     #[strum(serialize = "Double Dividend")]
     DoubleDividend,
     #[strum(serialize = "Triple Dividend")]
@@ -21,9 +23,9 @@ pub enum Joker {
     AutonomicGain,
 }
 
-use Joker::*;
+use JokerKind::*;
 use Rarity::*;
-impl Joker {
+impl JokerKind {
     pub fn name(self) -> &'static str {
         self.into()
     }
@@ -42,9 +44,9 @@ impl Joker {
 
     pub fn rarity(self) -> Rarity {
         match self {
-            DoubleDividend => Rare,
-            TripleDividend => Legendary,
-            QuadrupleDividend => Mythic,
+            DoubleDividend => Common,
+            TripleDividend => Common,
+            QuadrupleDividend => Common,
             MagicSell => Uncommon,
             SteadyIncome => Common,
             AutonomicGain => Rare,
@@ -75,10 +77,32 @@ impl Joker {
             SteadyIncome => Some(|p, _, _| p.cash += 5.),
             AutonomicGain => Some(|p, _, rng| {
                 if let Some(holding) = p.rnd_holding(rng) {
-                    holding.add_free_share();
+                    holding.increment_for_free();
                 }
             }),
             _ => None,
         }
+    }
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub struct Joker {
+    pub kind: JokerKind,
+    pub slot: i32,
+}
+
+impl Joker {
+    pub const NOT_OWNED: i32 = -1;
+
+    pub fn new(kind: JokerKind) -> Self {
+        Self { kind, slot: Self::NOT_OWNED }
+    }
+}
+
+impl Deref for Joker {
+    type Target = JokerKind;
+
+    fn deref(&self) -> &JokerKind {
+        &self.kind
     }
 }

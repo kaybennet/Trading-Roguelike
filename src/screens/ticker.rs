@@ -14,7 +14,7 @@ use crate::consts::{
     JOKER_PANEL_WIDTH_PCT, OFFER_SIZE, PANEL_GAP, SCORE_PANEL_WIDTH_PCT, STOCK_FONT_SIZE,
     TICKER_CARD_WIDTH_PCT, TICKER_FONT_SIZE, TICKER_HEIGHT_PCT, TICKER_TOP_PCT,
 };
-use crate::general::Portfolio;
+use crate::general::{GameState, Portfolio};
 use crate::stocks::{Market, WeeklyOffer};
 
 /// How many of the latest weekly prices the sparkline shows.
@@ -29,6 +29,7 @@ pub fn ticker_ui(
     mut contexts: EguiContexts,
     offer: Res<WeeklyOffer>,
     market: Res<Market>,
+    state: Res<GameState>,
     mut portfolio: ResMut<Portfolio>,
 ) -> Result {
     let ctx = contexts.ctx_mut()?;
@@ -51,17 +52,13 @@ pub fn ticker_ui(
         let stock = market.get(ticker);
         let x = band_x + spacing * (index as f32 + 1.0) + card_w * index as f32;
         let base = rect_at(x, band_center_y - card_h / 2.0, card_w, card_h);
-        let affordable = portfolio.cash >= stock.price() as f64;
+        let affordable = portfolio.cash >= Portfolio::buy_cost(stock, state.commission);
         let hovered = hover_amount(ctx, ("ticker", index), base);
         let hover = if affordable { hovered } else { 0.0 };
         let card_rect = card(&bg, base, PANEL_COLOR, hover, 0.0);
 
         let change = stock.weekly_change_pct();
-        let color = c32(if change >= 0.0 {
-            STOCK_UP_COLOR
-        } else {
-            STOCK_DOWN_COLOR
-        });
+        let color = c32(if change >= 0.0 { STOCK_UP_COLOR } else { STOCK_DOWN_COLOR });
         let name_color = c32(stock_color(stock.ticker));
         let (color, name_color) = if affordable {
             (color, name_color)
@@ -70,21 +67,10 @@ pub fn ticker_ui(
         };
 
         // Faint price history behind the text.
-        let recent: Vec<f32> = stock
-            .history
-            .iter()
-            .rev()
-            .take(SPARKLINE_WEEKS)
-            .rev()
-            .copied()
-            .collect();
+        let recent: Vec<f32> =
+            stock.history.iter().rev().take(SPARKLINE_WEEKS).rev().copied().collect();
         let area = card_rect.shrink2(egui::vec2(PANEL_GAP, PANEL_GAP * 2.0));
-        sparkline(
-            &bg,
-            area,
-            &recent,
-            name_color.gamma_multiply(SPARKLINE_FADE),
-        );
+        sparkline(&bg, area, &recent, name_color.gamma_multiply(SPARKLINE_FADE));
 
         // egui has no bold weight here, so draw the text twice, offset by a fraction of a pixel.
         let lines = [format!("€{:.2}", stock.price()), format!("{change:+.1}%")];
@@ -120,12 +106,7 @@ pub fn ticker_ui(
             &bg,
             card_rect.center().x,
             card_rect.bottom() - PANEL_GAP - lines_height(1, STOCK_FONT_SIZE),
-            &[if affordable {
-                "Hold or right-click"
-            } else {
-                "Not enough cash"
-            }
-            .to_string()],
+            &[if affordable { "Hold or right-click" } else { "Not enough cash" }.to_string()],
             STOCK_FONT_SIZE,
             muted(),
         );
@@ -148,7 +129,7 @@ pub fn ticker_ui(
             buys += fires;
             progress = p;
             for _ in 0..buys {
-                portfolio.buy(stock);
+                portfolio.buy(stock, state.commission);
             }
         });
 

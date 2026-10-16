@@ -11,7 +11,7 @@ use rand::{RngExt, SeedableRng};
 use crate::consts::SEED;
 
 pub use app_state::AppState;
-pub use game_events::{Boost, CashGained, GameEvent, SharesGained, Sold, Triggered, turns_ended};
+pub use game_events::{Boost, CashGained, EndOfWeekEvent, GameEvent, SharesGained, Sold};
 pub use game_state::{Date, GameState};
 pub use portfolio::Portfolio;
 pub use turn::Sequence;
@@ -51,13 +51,12 @@ pub struct GeneralPlugin;
 
 impl Plugin for GeneralPlugin {
     fn build(&self, app: &mut App) {
-        app.insert_resource(GlobalRng(StdRng::seed_from_u64(SEED)))
-            .add_plugins((
-                game_events::GameEventsPlugin,
-                app_state::AppStatePlugin,
-                game_state::GameStatePlugin,
-                turn::TurnPlugin,
-                portfolio::PortfolioPlugin,
-            ));
+        app.insert_resource(GlobalRng(StdRng::seed_from_u64(SEED))).add_plugins((
+            game_events::GameEventsPlugin,
+            app_state::AppStatePlugin,
+            game_state::GameStatePlugin,
+            turn::TurnPlugin,
+            portfolio::PortfolioPlugin,
+        ));
     }
 }

@@ -48,19 +48,15 @@ pub fn market_ui(
         }
     }
 
-    egui::Area::new(Id::new("market"))
-        .order(Order::Foreground)
-        .fixed_pos(screen.min)
-        .show(ctx, |ui| {
+    egui::Area::new(Id::new("market")).order(Order::Foreground).fixed_pos(screen.min).show(
+        ctx,
+        |ui| {
             let painter = ui.painter().clone();
             // Swallow clicks so the game underneath can't be played.
             ui.allocate_rect(screen, Sense::click());
             painter.rect_filled(screen, 0.0, c32(BG_BOTTOM_COLOR).gamma_multiply(0.97));
             painter.text(
-                Pos2::new(
-                    screen.left() + PANEL_GAP * 2.0,
-                    screen.top() + PANEL_GAP * 2.0,
-                ),
+                Pos2::new(screen.left() + PANEL_GAP * 2.0, screen.top() + PANEL_GAP * 2.0),
                 Align2::LEFT_TOP,
                 "Market",
                 FontId::proportional(TOP_BAR_FONT_SIZE + 6.0),
@@ -90,18 +86,10 @@ pub fn market_ui(
                     screen.left() + PANEL_GAP * 2.0,
                     screen.top() + HEADER_HEIGHT + PANEL_GAP,
                 ),
-                Pos2::new(
-                    screen.right() - PANEL_GAP * 2.0,
-                    screen.bottom() - PANEL_GAP * 2.0,
-                ),
+                Pos2::new(screen.right() - PANEL_GAP * 2.0, screen.bottom() - PANEL_GAP * 2.0),
             );
             let avg_cost = |ticker: Ticker| {
-                portfolio
-                    .slots
-                    .iter()
-                    .flatten()
-                    .find(|h| h.ticker == ticker)
-                    .map(|h| h.avg_cost)
+                portfolio.slots.iter().flatten().find(|h| h.ticker == ticker).map(|h| h.avg_cost)
             };
 
             if let Some(stock) = focus.map(|t| market.get(t)) {
@@ -122,8 +110,7 @@ pub fn market_ui(
                 let response =
                     ui.interact(cell, Id::new(("market_cell", stock.ticker)), Sense::click());
                 let hover =
-                    ui.ctx()
-                        .animate_bool_with_time(response.id, response.hovered(), HOVER_SECS);
+                    ui.ctx().animate_bool_with_time(response.id, response.hovered(), HOVER_SECS);
                 if response.hovered() {
                     ui.ctx().set_cursor_icon(egui::CursorIcon::PointingHand);
                 }
@@ -132,7 +119,8 @@ pub fn market_ui(
                     new_focus = Some(stock.ticker);
                 }
             }
-        });
+        },
+    );
 
     ctx.data_mut(|d| {
         match new_focus {

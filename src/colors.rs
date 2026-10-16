@@ -37,10 +37,7 @@ const STOCK_COLORS: [(&str, Color); 12] = [
 ];
 
 pub fn stock_color(ticker: Ticker) -> Color {
-    STOCK_COLORS
-        .iter()
-        .find(|(s, _)| *s == ticker.name())
-        .map_or(MUTED_COLOR, |&(_, color)| color)
+    STOCK_COLORS.iter().find(|(s, _)| *s == ticker.name()).map_or(MUTED_COLOR, |&(_, color)| color)
 }
 
 pub fn rarity_color(rarity: Rarity) -> Color {

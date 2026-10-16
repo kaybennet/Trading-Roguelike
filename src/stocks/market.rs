@@ -16,23 +16,22 @@ impl Market {
     pub fn new(rng: &mut GlobalRng) -> Self {
         let stocks = STOCKS
             .iter()
-            .map(|&(ticker, country, price, volatility, dividend_yield)| {
-                let mut history = VecDeque::with_capacity(MARKET_HISTORY_WEEKS);
-                history.push_front(price);
-                for _ in 1..MARKET_HISTORY_WEEKS {
-                    let change = rng.random_range(-1.0..1.0) * volatility;
-                    history.push_front((history[0] / (1.0 + change)).max(STOCK_MIN_PRICE));
-                }
-                Stock {
-                    ticker,
-                    country,
-                    volatility,
-                    dividend_yield,
-                    history,
-                }
+            .enumerate()
+            .map(|(idx, &(ticker, country, _, volatility, dividend_yield))| {
+                let history = Market::generate_history(idx, rng);
+                Stock { ticker, country, volatility, dividend_yield, history }
             })
             .collect();
         Self { stocks }
+    }
+
+    pub fn generate_history(idx: usize, rng: &mut GlobalRng) -> VecDeque<f32> {
+        let (_, _, price, volatility, _) = STOCKS[idx];
+        let backwards = std::iter::successors(Some(price), |&newer| {
+            let change = rng.random_range(-1.0..1.0) * volatility;
+            Some((newer / (1.0 + change)).max(STOCK_MIN_PRICE))
+        });
+        backwards.take(MARKET_HISTORY_WEEKS).collect::<Vec<_>>().into_iter().rev().collect()
     }
 
     pub fn get(&self, ticker: Ticker) -> &Stock {
@@ -49,8 +48,7 @@ impl Market {
             stock.record((stock.price() * (1.0 + change)).max(STOCK_MIN_PRICE));
         }
     }
-}
-
-pub(super) fn create_market(mut commands: Commands, mut rng: ResMut<GlobalRng>) {
-    commands.insert_resource(Market::new(&mut rng));
+    pub fn create(mut commands: Commands, mut rng: ResMut<GlobalRng>) {
+        commands.insert_resource(Market::new(&mut rng));
+    }
 }
